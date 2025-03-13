@@ -35,11 +35,7 @@ class Exercise(db.Model):
 with app.app_context():
     db.create_all()
 
-# Création de données de test
-if not User.query.all():
-    db.session.add(User(nom="Alice Durand", email="",))
-    db.session.add(User(nom="Bob Martin", email="",))
-    db.session.commit()
+
 
 # Routes API
 @app.route('/users', methods=['POST'])
