@@ -1,0 +1,33 @@
+# Node modules
+node_modules/
+
+# Build output
+/android/
+ios/ 
+build/
+
+# React Native Packager
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# macOS
+.DS_Store
+
+# Android Studio
+.idea/
+.gradle/
+local.properties
+
+# Expo
+.expo/
+.expo-shared/
+
+# VS Code
+.vscode/
+
+# Log files
+*.log
+
+# Environment files (ne pas partager les variables sensibles)
+.env
