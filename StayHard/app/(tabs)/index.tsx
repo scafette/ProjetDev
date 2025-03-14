@@ -16,13 +16,6 @@ export default function HomeScreen() {
           style={[styles.headerImage, { width: '80%', height: 300 }]} // Adjust the width and height as needed
         />
       }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">StayHard</ThemedText>
-        <TouchableOpacity onPress={() => console.log('Edit Profile')}>
-          <Ionicons name="settings" size={24} color="black" />
-        </TouchableOpacity>
-      </ThemedView>
-
       <ThemedView style={styles.sectionContainer}>
         <ThemedText type="subtitle">Nouveautés Sportives</ThemedText>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
