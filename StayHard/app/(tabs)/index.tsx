@@ -8,7 +8,14 @@ import { Ionicons } from '@expo/vector-icons'; // Assurez-vous d'avoir installé
 
 export default function HomeScreen() {
   return (
-    <ParallaxScrollView>
+    <ParallaxScrollView
+      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
+      headerImage={
+        <Image
+          source={require('@/assets/images/adaptive-icon.png')}
+          style={[styles.headerImage, { width: '80%', height: 300 }]} // Adjust the width and height as needed
+        />
+      }>
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">StayHard</ThemedText>
         <TouchableOpacity onPress={() => console.log('Edit Profile')}>
