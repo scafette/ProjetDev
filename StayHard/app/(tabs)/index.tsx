@@ -1,21 +1,12 @@
 import React from 'react';
-import { Image, StyleSheet, Platform, TouchableOpacity, ScrollView } from 'react-native';
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
+import { Image, StyleSheet, ScrollView } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { Ionicons } from '@expo/vector-icons'; // Assurez-vous d'avoir installé @expo/vector-icons
+import { Ionicons } from '@expo/vector-icons';
 
 export default function HomeScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/adaptive-icon.png')}
-          style={[styles.headerImage, { width: '80%', height: 300 }]} // Adjust the width and height as needed
-        />
-      }>
+    <ScrollView style={styles.container}>
       <ThemedView style={styles.sectionContainer}>
         <ThemedText type="subtitle">Nouveautés Sportives</ThemedText>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -27,10 +18,9 @@ export default function HomeScreen() {
             <Image source={require('@/assets/images/exercice1.jpeg')} style={styles.cardImage} />
             <ThemedText type="defaultSemiBold">Cardio</ThemedText>
           </ThemedView>
-          {/* Ajoutez plus de cartes ici */}
         </ScrollView>
       </ThemedView>
-
+      
       <ThemedView style={styles.sectionContainer}>
         <ThemedText type="subtitle">Ton Planning</ThemedText>
         <ThemedView style={styles.scheduleItem}>
@@ -41,9 +31,8 @@ export default function HomeScreen() {
           <Ionicons name="calendar" size={20} color="black" />
           <ThemedText style={styles.scheduleText}>Mercredi: Musculation</ThemedText>
         </ThemedView>
-        {/* Ajoutez plus d'éléments de planning ici */}
       </ThemedView>
-
+      
       <ThemedView style={styles.sectionContainer}>
         <ThemedText type="subtitle">Tes Exercices</ThemedText>
         <ThemedView style={styles.exerciseItem}>
@@ -54,19 +43,14 @@ export default function HomeScreen() {
           <Ionicons name="barbell" size={20} color="black" />
           <ThemedText style={styles.exerciseText}>Pompes: 3 séries de 15</ThemedText>
         </ThemedView>
-        {/* Ajoutez plus d'éléments d'exercices ici */}
       </ThemedView>
-    </ParallaxScrollView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginBottom: 16,
+  container: {
+    flex: 1,
   },
   sectionContainer: {
     marginBottom: 24,
@@ -100,9 +84,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   headerImage: {
-    color: '#808080',
-    bottom: -48,
-    left: -10,
-    position: 'absolute',
+    alignSelf: 'center',
+    marginVertical: 20,
   },
 });
