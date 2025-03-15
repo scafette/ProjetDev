@@ -15,22 +15,16 @@ const generateRandomString = (length = 10) => {
 const RandomQRCodeGenerator = () => {
   const [randomData, setRandomData] = useState(generateRandomString());
 
-  // Fonction pour regénérer un QR code avec de nouvelles données aléatoires
-  const regenerateQRCode = () => {
-    setRandomData(generateRandomString());
-  };
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Générateur de QR Code Aléatoire</Text>
       <QRCode
         value={randomData} // Les données à encoder dans le QR code
-        size={200} // Taille du QR code
+        size={350} // Taille du QR code
         color="black" // Couleur du QR code
         backgroundColor="white" // Couleur de fond
       />
       <Text style={styles.dataText}>Données : {randomData}</Text>
-      <Button title="Générer un nouveau QR Code" onPress={regenerateQRCode} />
     </View>
   );
 };

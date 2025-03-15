@@ -18,45 +18,54 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
+      tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+      headerShown: false,
+      tabBarButton: HapticTab,
+      tabBarBackground: TabBarBackground,
+      tabBarStyle: Platform.select({
+        ios: {
+        // Use a transparent background on iOS to show the blur effect
+        position: 'absolute',
+        },
+        default: {},
+      }),
       }}>
       <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Accueil',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
+      name="index"
+      options={{
+        title: 'Accueil',
+        tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+      }}
       />
       <Tabs.Screen
-        name="exercice"
-        options={{
-          title: 'Exercices',
-          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="dumbbell" size={24} color={color} />,
-        }}
+      name="exercice"
+      options={{
+        title: 'Exercices',
+        tabBarIcon: ({ color }) => <MaterialCommunityIcons name="dumbbell" size={24} color={color} />,
+      }}
       />
       <Tabs.Screen
-        name="Planning"
-        options={{
-          title: 'Planning',
-          tabBarIcon: ({ color }) => <Ionicons size={28} name="calendar-outline" color={color} />,
-        }}
+      name="Planning"
+      options={{
+        title: 'Planning',
+        tabBarIcon: ({ color }) => <Ionicons size={28} name="calendar-outline" color={color} />,
+      }}
+      
       />
-            <Tabs.Screen
-        name="account"
-        options={{
-          title: 'Profil',
-          tabBarIcon: ({ color }) => <AntDesign size={28} name="user" color={color} />,
-        }}
+      <Tabs.Screen
+      name="notification"
+      options={{
+        title: 'Notifications',
+        tabBarIcon: ({ color }) => <Ionicons size={28} name="notifications-outline" color={color} />,
+      }}
+      
+      />
+        <Tabs.Screen
+      name="account"
+      options={{
+        title: 'Profil',
+        tabBarIcon: ({ color }) => <AntDesign size={28} name="user" color={color} />,
+      }}
       />
     </Tabs>
   );
