@@ -11,8 +11,6 @@ type Session = {
   exercises: string[];
 };
 
-
-
 type Goal = {
   id: string;
   description: string;
@@ -108,17 +106,24 @@ export default function PlanningScreen() {
       {/* Section Calendrier */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Calendrier</Text>
-        <Calendar
-          markedDates={sessions.reduce((acc, session) => {
-            acc[session.date] = { marked: true, dotColor: '#00b80e' };
-            return acc;
-          }, {} as { [key: string]: { marked: boolean; dotColor: string } })}
-          theme={{
-            todayTextColor: '#00b80e',
-            selectedDayBackgroundColor: '#00b80e',
-            arrowColor: '#00b80e',
-          }}
-        />
+        <View style={styles.calendarContainer}>
+          <Calendar
+            markedDates={sessions.reduce((acc, session) => {
+              acc[session.date] = { marked: true, dotColor: '#1F1F1F' };
+              return acc;
+            }, {} as { [key: string]: { marked: boolean; dotColor: string } })}
+            theme={{
+              todayTextColor: '#00b80e',
+              selectedDayBackgroundColor: '#00b80e',
+              arrowColor: '#00b80e',
+              calendarBackground: '#1F1F1F', // Couleur de fond du calendrier
+              textSectionTitleColor: '#FFFFFF', // Couleur du texte des jours de la semaine
+              dayTextColor: '#FFFFFF', // Couleur du texte des jours
+              monthTextColor: '#FFFFFF', // Couleur du texte du mois
+              textDisabledColor: '#555555', // Couleur du texte des jours désactivés
+            }}
+          />
+        </View>
       </View>
 
       {/* Section Ajouter une séance */}
@@ -233,7 +238,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'black',
   },
   section: {
     marginBottom: 24,
@@ -242,7 +247,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 16,
-    color: '#1D3D47',
+    color: '#FFF',
+  },
+  calendarContainer: {
+    backgroundColor: '#1F1F1F', // Couleur de fond du calendrier
+    borderRadius: 10, // Arrondir les coins si nécessaire
+    padding: 10, // Ajouter un peu de padding
   },
   addButton: {
     flexDirection: 'row',
@@ -254,7 +264,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     marginLeft: 8,
     fontSize: 16,
-    color: '#1D3D47',
+    color: '#1D3D47', 
   },
   sessionCard: {
     backgroundColor: '#F0F0F0',
