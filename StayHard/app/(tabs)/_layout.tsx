@@ -33,28 +33,28 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Accueil',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="exercice"
         options={{
-          title: 'Exercice',
+          title: 'Exercices',
           tabBarIcon: ({ color }) => <MaterialCommunityIcons name="dumbbell" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="Planning"
         options={{
-          title: 'Settings',
-          tabBarIcon: ({ color }) => <Ionicons size={28} name="settings" color={color} />,
+          title: 'Planning',
+          tabBarIcon: ({ color }) => <Ionicons size={28} name="calendar-outline" color={color} />,
         }}
       />
             <Tabs.Screen
         name="account"
         options={{
-          title: 'Account',
+          title: 'Profil',
           tabBarIcon: ({ color }) => <AntDesign size={28} name="user" color={color} />,
         }}
       />

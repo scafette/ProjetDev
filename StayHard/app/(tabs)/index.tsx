@@ -12,6 +12,7 @@ type RootStackParamList = {
   Home: undefined;
   Planning: undefined; // Ajoutez d'autres écrans ici
   exercice: undefined;
+  Qrcode: undefined;
 };
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
@@ -58,13 +59,13 @@ export default function HomeScreen() {
       {/* Section Cartes D'accès et Gagne des recompenses sur les exo */}
       <ThemedView style={styles.sectionContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <ThemedView style={styles.card}>
-        <Ionicons name="card-outline" size={24} color="#00b80e" />
-        <ThemedText style={styles.cardText}>
-          <ThemedText>Carte d'accès{"\n"}</ThemedText>
-          <ThemedText style={styles.smallText}>Valide jusqu'au 31/12/2021</ThemedText>
-        </ThemedText>
-          </ThemedView>
+            <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Qrcode')}>
+            <Ionicons name="card-outline" size={24} color="#00b80e" />
+            <ThemedText style={styles.cardText}>
+              <ThemedText>Carte d'accès{"\n"}</ThemedText>
+              <ThemedText style={styles.smallText}>Valide jusqu'au 31/12/2021</ThemedText>
+            </ThemedText>
+            </TouchableOpacity>
           <ThemedView style={styles.card}>
         <Ionicons name="trophy-outline" size={24} color="#00b80e" />
         <ThemedText style={styles.cardText}>
