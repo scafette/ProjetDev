@@ -118,13 +118,6 @@ export default function HomeScreen() {
         </ThemedView>
       </TouchableOpacity>
 
-
-
-       
-
-
-
-
       {/* Section Case Nutrition et a coter case Entrainement */}
             <ThemedView style={styles.nutritionTrainingContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
