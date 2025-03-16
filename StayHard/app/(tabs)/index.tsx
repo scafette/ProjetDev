@@ -16,6 +16,12 @@ type RootStackParamList = {
   nutrition: undefined;
   MaSalleDeSport: undefined;
   recompense: undefined;
+  ZoneCardio: undefined;
+  ZoneMusculation: undefined;
+  ZoneFunctionalTraining: undefined;
+  ZoneEtirement: undefined;
+  ZoneCrossFit: undefined;
+  ZoneRecuperation: undefined;
 };
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
@@ -90,33 +96,35 @@ export default function HomeScreen() {
           <ThemedText type="subtitle">{"\n"}</ThemedText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <ThemedView style={styles.sportCard}>
-          <ImageBackground source={require('../../assets/images/exercice1.jpeg')} style={styles.sportCardImage}>
-            <ThemedText type="defaultSemiBold" style={styles.sportCardTextOverlay}>Yoga</ThemedText>
+          <TouchableOpacity onPress={() => navigation.navigate('ZoneCardio')}>
+            <ImageBackground source={require('../../assets/images/exercice1.jpeg')} style={styles.sportCardImage}>
+              <ThemedText type="defaultSemiBold" style={styles.sportCardTextOverlay}>Zone Cardio</ThemedText>
+            </ImageBackground>
+          </TouchableOpacity>
+        </ThemedView>
+        <ThemedView style={styles.sportCard}>
+        <ImageBackground source={require('../../assets/images/exercice1.jpeg')} style={styles.sportCardImage}>
+            <ThemedText type="defaultSemiBold" style={styles.sportCardTextOverlay}>Zone Musculation</ThemedText>
           </ImageBackground>
         </ThemedView>
         <ThemedView style={styles.sportCard}>
         <ImageBackground source={require('../../assets/images/exercice1.jpeg')} style={styles.sportCardImage}>
-            <ThemedText type="defaultSemiBold" style={styles.sportCardTextOverlay}>Yoga</ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.sportCardTextOverlay}>Zone Functional Training</ThemedText>
           </ImageBackground>
         </ThemedView>
         <ThemedView style={styles.sportCard}>
         <ImageBackground source={require('../../assets/images/exercice1.jpeg')} style={styles.sportCardImage}>
-            <ThemedText type="defaultSemiBold" style={styles.sportCardTextOverlay}>Yoga</ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.sportCardTextOverlay}>Zone Étirement et Mobilité</ThemedText>
           </ImageBackground>
         </ThemedView>
         <ThemedView style={styles.sportCard}>
         <ImageBackground source={require('../../assets/images/exercice1.jpeg')} style={styles.sportCardImage}>
-            <ThemedText type="defaultSemiBold" style={styles.sportCardTextOverlay}>Yoga</ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.sportCardTextOverlay}>Zone CrossFit / HIIT</ThemedText>
           </ImageBackground>
         </ThemedView>
         <ThemedView style={styles.sportCard}>
         <ImageBackground source={require('../../assets/images/exercice1.jpeg')} style={styles.sportCardImage}>
-            <ThemedText type="defaultSemiBold" style={styles.sportCardTextOverlay}>Yoga</ThemedText>
-          </ImageBackground>
-        </ThemedView>
-        <ThemedView style={styles.sportCard}>
-        <ImageBackground source={require('../../assets/images/exercice1.jpeg')} style={styles.sportCardImage}>
-            <ThemedText type="defaultSemiBold" style={styles.sportCardTextOverlay}>Yoga</ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.sportCardTextOverlay}>Zone Récupération</ThemedText>
           </ImageBackground>
         </ThemedView>
           </ScrollView>
@@ -300,12 +308,14 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    backgroundColor: 'rgba(180, 177, 177, 0.47)',
     padding: 8,
     color: '#FFFFFF',
     textAlign: 'center',
     borderBottomLeftRadius: 10,
     borderBottomRightRadius: 10,
+    fontSize: 12,
+    color : 'black'
     
   },
   exerciseItem: {
