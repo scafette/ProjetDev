@@ -14,6 +14,8 @@ type RootStackParamList = {
   exercice: undefined;
   Qrcode: undefined;
   nutrition: undefined;
+  MaSalleDeSport: undefined;
+  recompense: undefined;
 };
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
@@ -43,38 +45,43 @@ export default function HomeScreen() {
       </TouchableOpacity>
 
       {/* Section MON CLUB avec image en arrière-plan */}
-      <ThemedView style={styles.sectionContainer}>
-        <ImageBackground
-          source={require('../../assets/images/monclub.png')}
-          style={styles.clubImageBackground}
-          imageStyle={styles.clubImageStyle}
-        >
-          <ThemedText style={styles.clubOverlayText}>
-            <ThemedText style={styles.clubSubtitle}>MON CLUB{"\n"}</ThemedText>
-            <ThemedText style={styles.clubTitle}>LA SALLE DE SPORTS CLUB</ThemedText>
-          </ThemedText>
-        </ImageBackground>
-      </ThemedView>
+      <TouchableOpacity onPress={() => navigation.navigate('MaSalleDeSport')}>
+        <ThemedView style={styles.sectionContainer}>
+          <ImageBackground
+        source={require('../../assets/images/monclub.png')}
+        style={styles.clubImageBackground}
+        imageStyle={styles.clubImageStyle}
+          >
+        <ThemedText style={styles.clubOverlayText}>
+          <ThemedText style={styles.clubSubtitle}>MON CLUB{"\n"}</ThemedText>
+          <ThemedText style={styles.clubTitle}>LA SALLE DE SPORTS CLUB</ThemedText>
+        </ThemedText>
+          </ImageBackground>
+        </ThemedView>
+      </TouchableOpacity>
 
 
       {/* Section Cartes D'accès et Gagne des recompenses sur les exo */}
-      <ThemedView style={styles.sectionContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Qrcode')}>
-            <Ionicons name="card-outline" size={24} color="#00b80e" />
-            <ThemedText style={styles.cardText}>
-              <ThemedText>Carte d'accès{"\n"}</ThemedText>
-              <ThemedText style={styles.smallText}>Valide jusqu'au 31/12/2021</ThemedText>
-            </ThemedText>
-            </TouchableOpacity>
-          <ThemedView style={styles.card}>
-        <Ionicons name="trophy-outline" size={24} color="#00b80e" />
-        <ThemedText style={styles.cardText}>
-          <ThemedText>Gagne{"\n"}des récompenses grace au exo</ThemedText>
-        </ThemedText>
-          </ThemedView>
-        </ScrollView>
-      </ThemedView>
+<ThemedView style={styles.sectionContainer}>
+  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+    {/* Access Card */}
+    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Qrcode')}>
+      <Ionicons name="card-outline" size={24} color="#00b80e" />
+      <ThemedText style={styles.cardText}>
+        Carte d'accès{"\n"}
+        <ThemedText style={styles.smallText}>Valide jusqu'au 31/12/2021</ThemedText>
+      </ThemedText>
+    </TouchableOpacity>
+
+    {/* Recompenses Card */}
+    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('recompense')}>
+      <Ionicons name="trophy-outline" size={24} color="#00b80e" />
+      <ThemedText style={styles.cardText}>
+        Gagne{"\n"}des récompenses grâce à l'exo
+      </ThemedText>
+    </TouchableOpacity>
+  </ScrollView>
+</ThemedView>
 
       {/* Section Exercice ou tu peux defililer pour voir plusieur exercice et un button voir tou les exercice */}
       <TouchableOpacity style={styles.card1}>
