@@ -2,8 +2,19 @@ import { Image, StyleSheet, Platform, View, TouchableOpacity } from 'react-nativ
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Ionicons } from '@expo/vector-icons'; // Assurez-vous d'avoir installé @expo/vector-icons
+import { useNavigation } from '@react-navigation/native'; // Importez useNavigation
+import { StackNavigationProp } from '@react-navigation/stack';
+
+type RootStackParamList = {
+  Home: undefined;
+  settings: undefined;
+};
+
+type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
 export default function HomeScreen() {
+const navigation = useNavigation<HomeScreenNavigationProp>(); // Utilisez useNavigation
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
@@ -16,6 +27,17 @@ export default function HomeScreen() {
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Mon Profil</ThemedText>
       </ThemedView>
+
+      {/* button settings qui redirige vers une page  */}
+      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('settings')}>
+        <Image
+          source={require('@/assets/images/settingsgear.png')}
+          style={{ width: 20, height: 20, marginLeft: 8 }}
+        />
+      </TouchableOpacity>
+
+
+
 
       {/* Mes Informations */}
       <ThemedView style={styles.stepContainer}>

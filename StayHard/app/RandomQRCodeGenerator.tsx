@@ -1,30 +1,21 @@
 import React, { useState } from 'react';
-import { View, Text, Button, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
-// Fonction pour générer une chaîne aléatoire
-const generateRandomString = (length = 10) => {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return result;
-};
-
 const RandomQRCodeGenerator = () => {
-  const [randomData, setRandomData] = useState(generateRandomString());
+  // Lien profond vers la page "ScanInstructions"
+  const deepLink = 'stayhard://scan-instructions'; // Utilisez un schéma d'URL personnalisé
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Générateur de QR Code Aléatoire</Text>
+      <Text style={styles.title}>QR Code portiques</Text>
       <QRCode
-        value={randomData} // Les données à encoder dans le QR code
+        value={deepLink} // Utilisez le lien profond ici
         size={350} // Taille du QR code
         color="black" // Couleur du QR code
         backgroundColor="white" // Couleur de fond
       />
-      <Text style={styles.dataText}>Données : {randomData}</Text>
+      <Text style={styles.dataText}>Veuillez scanner le QR code sur les portiques</Text>
     </View>
   );
 };
