@@ -13,6 +13,7 @@ type RootStackParamList = {
   Planning: undefined; // Ajoutez d'autres écrans ici
   exercice: undefined;
   Qrcode: undefined;
+  nutrition: undefined;
 };
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
@@ -123,12 +124,12 @@ export default function HomeScreen() {
             <ThemedView style={styles.nutritionTrainingContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {/* Carte Nutrition */}
-          <ThemedView style={styles.nutritionCard}>
-          <Ionicons name="nutrition-outline" size={24} color="#00b80e" />
+            <TouchableOpacity style={styles.nutritionCard} onPress={() => navigation.navigate('nutrition')}>
+            <Ionicons name="nutrition-outline" size={24} color="#00b80e" />
             <ThemedText style={styles.nutritionCardText}>
               <ThemedText>NUTRITION{"\n"}</ThemedText>
             </ThemedText>
-          </ThemedView>
+            </TouchableOpacity>
 
           {/* Carte Entraînement */}
           <ThemedView style={styles.trainingCard}>
