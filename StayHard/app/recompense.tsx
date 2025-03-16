@@ -35,8 +35,8 @@ const EvolutionPage = () => {
   });
 
   // Données factices pour les niveaux et récompenses
-  const [level, setLevel] = useState(5);
-  const [progress, setProgress] = useState(75); // Progression en pourcentage
+  const [level, setLevel] = useState(0); // Niveau actuel
+  const [progress, setProgress] = useState(0); // Progression en pourcentage
   const rewards = ['Niveau 1: Badge Débutant', 'Niveau 3: Badge Intermédiaire', 'Niveau 5: Badge Expert'];
 
   // Données factices pour les notifications
