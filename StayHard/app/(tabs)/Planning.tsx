@@ -528,16 +528,18 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 16,
     backgroundColor: '#2D2D2D',
-    color: '#FFFFFF',
+   
   },
   pickerContainer: {
     flex: 1,
     marginHorizontal: 4, // Espacement entre les sélecteurs
+    
   },
   pickerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 16,
+    
   },
   modalButtons: {
     flexDirection: 'row',

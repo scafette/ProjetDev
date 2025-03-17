@@ -1,26 +1,26 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, FlatList, Image, StyleSheet } from 'react-native';
 
-const Musculation = () => {
+const ÉtirementetMobilité = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [exercises, setExercises] = useState([
     {
       id: '1',
-      name: 'Développé couché avec barre',
+      name: 'Étirement des ischio-jambiers',
       image: require('../assets/images/exercice2.jpg'),
-      description: 'Pourquoi ? Pour renforcer les muscles des pectoraux, des épaules et des triceps'
+      description: 'Cet exercice permet de détendre les ischio-jambiers.'
     },
     {
       id: '2',
-      name: 'Curl avec barre EZ',
+      name: 'Étirement des quadriceps',
       image: require('../assets/images/exercice2.jpg'),
-      description: 'Pourquoi ? Pour renforcer les muscles des biceps'
+      description: ' Cet exercice permet de détendre les quadriceps.'
     },
     {
       id: '3',
-      name: 'Squat avec barre',
+      name: ' Étirement des mollets',
       image: require('../assets/images/exercice2.jpg'),
-      description: 'Pourquoi ? Pour renforcer les muscles des cuisses et des f'
+      description: ' Cet exercice permet de détendre les mollets.'
     },
     // Ajoutez d'autres exercices ici
   ]);
@@ -99,4 +99,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Musculation;
+export default ÉtirementetMobilité;

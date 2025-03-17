@@ -1,109 +1,276 @@
-import { StyleSheet, Image, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, FlatList, Image, StyleSheet, TouchableOpacity } from 'react-native';
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+const ExerciseScreen = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [selectedType, setSelectedType] = useState('');
+  const [selectedMuscle, setSelectedMuscle] = useState('');
+  const [selectedDifficulty, setSelectedDifficulty] = useState('');
+  const [showDifficultySelector, setShowDifficultySelector] = useState(false);
 
-export default function TabTwoScreen() {
+  const exercises = [
+    {
+      id: '1',
+      name: 'Jumping Jacks',
+      image: require('../../assets/images/exercice2.jpg'),
+      description: 'Cardio, coordination et endurance musculaire',
+      type: 'Cardio',
+      muscle: 'Full Body',
+      difficulty: 'Débutant',
+      isFavorite: false,
+    },
+    {
+      id: '2',
+      name: 'High Knees',
+      image: require('../../assets/images/exercice2.jpg'),
+      description: 'Cardio, explosivité et renforcement du bas du corps',
+      type: 'Cardio',
+      muscle: 'Jambes',
+      difficulty: 'Intermédiaire',
+      isFavorite: true,
+    },
+    {
+      id: '3',
+      name: 'Squats au poids du corps',
+      image: require('../../assets/images/exercice2.jpg'),
+      description: 'Debout, pieds écartés à la largeur des épaules, pointes légèrement vers extérieur.',
+      type: 'Musculation',
+      muscle: 'Jambes',
+      difficulty: 'Débutant',
+      isFavorite: false,
+    },
+    // Ajoutez d'autres exercices ici
+  ];
+
+  // Fonction pour réinitialiser les filtres
+  const resetFilters = () => {
+    setFavoritesOnly(false);
+    setSelectedType('');
+    setSelectedMuscle('');
+    setSelectedDifficulty('');
+    setShowDifficultySelector(false);
+  };
+
+  // Filtrer les exercices en fonction des critères
+  const filteredExercises = exercises.filter((exercise) => {
+    const matchesSearch = exercise.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFavorites = !favoritesOnly || exercise.isFavorite;
+    const matchesType = !selectedType || exercise.type === selectedType;
+    const matchesMuscle = !selectedMuscle || exercise.muscle === selectedMuscle;
+    const matchesDifficulty = !selectedDifficulty || exercise.difficulty === selectedDifficulty;
+
+    return matchesSearch && matchesFavorites && matchesType && matchesMuscle && matchesDifficulty;
+  });
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
-          </ThemedText>
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user's current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      <Text style={styles.header}>Exercices</Text>
+
+      {/* Barre de recherche */}
+      <TextInput
+        style={styles.searchBar}
+        placeholder="Rechercher un exercice..."
+        placeholderTextColor="white"
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+      />
+
+      {/* Filtres */}
+      <View style={styles.filtersContainer}>
+        <TouchableOpacity
+          style={[styles.filterButton, favoritesOnly && styles.activeFilter]}
+          onPress={() => setFavoritesOnly(!favoritesOnly)}
+        >
+          <Text style={styles.filterText}>Favoris</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.filterButton, selectedType === 'Cardio' && styles.activeFilter]}
+          onPress={() => setSelectedType(selectedType === 'Cardio' ? '' : 'Cardio')}
+        >
+          <Text style={styles.filterText}>Cardio</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.filterButton, selectedMuscle === 'Jambes' && styles.activeFilter]}
+          onPress={() => setSelectedMuscle(selectedMuscle === 'Jambes' ? '' : 'Jambes')}
+        >
+          <Text style={styles.filterText}>Jambes</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={() => setShowDifficultySelector(!showDifficultySelector)}
+        >
+          <Text style={styles.filterText}>Difficulté</Text>
+        </TouchableOpacity>
+        {showDifficultySelector && (
+          <View style={styles.selectorContainer}>
+            <TouchableOpacity
+              style={[styles.selectorOption, selectedDifficulty === 'Débutant' && styles.activeFilter]}
+              onPress={() => {
+                setSelectedDifficulty('Débutant');
+                setShowDifficultySelector(false);
+              }}
+            >
+              <Text style={styles.filterText}>Débutant</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.selectorOption, selectedDifficulty === 'Intermédiaire' && styles.activeFilter]}
+              onPress={() => {
+                setSelectedDifficulty('Intermédiaire');
+                setShowDifficultySelector(false);
+              }}
+            >
+              <Text style={styles.filterText}>Intermédiaire</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.selectorOption, selectedDifficulty === 'Difficile' && styles.activeFilter]}
+              onPress={() => {
+                setSelectedDifficulty('Difficile');
+                setShowDifficultySelector(false);
+              }}
+            >
+              <Text style={styles.filterText}>Difficile</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Bouton de réinitialisation */}
+        <TouchableOpacity
+          style={styles.resetButton}
+          onPress={resetFilters}
+        >
+          <Text style={styles.filterText}>Réinitialiser</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Liste des exercices filtrés */}
+      <FlatList
+        data={filteredExercises}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Image source={item.image} style={styles.image} />
+            <View style={styles.textContainer}>
+              <Text style={styles.name}>{item.name}</Text>
+              <Text style={styles.description}>{item.description}</Text>
+              <Text style={styles.details}>
+                Type: {item.type} | Muscle: {item.muscle} | Difficulté: {item.difficulty}
+              </Text>
+              {item.isFavorite && <Text style={styles.favorite}>⭐ Favori</Text>}
+            </View>
+          </View>
+        )}
+      />
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: 'black',
   },
-  titleContainer: {
+  header: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginTop: 25,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  searchBar: {
+    height: 40,
+    borderColor: '#00b80e',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    marginBottom: 16,
+    backgroundColor: 'black',
+    color: 'white',
+  },
+  filtersContainer: {
     flexDirection: 'row',
-    gap: 8,
+    flexWrap: 'wrap',
+    marginBottom: 16,
+    alignItems: 'center', // Pour aligner le bouton de réinitialisation
+  },
+  filterButton: {
+    padding: 8,
+    margin: 4,
+    borderRadius: 8,
+    backgroundColor: '#00b80e',
+  },
+  activeFilter: {
+    backgroundColor: '#00b80e',
+  },
+  resetButton: {
+    padding: 8,
+    margin: 4,
+    borderRadius: 8,
+    backgroundColor: '#ff4444', // Couleur rouge pour le bouton de réinitialisation
+  },
+  filterText: {
+    color: 'white',
+  },
+  selectorContainer: {
+    position: 'absolute',
+    top: 40,
+    right: 0,
+    backgroundColor: '#1F1F1F',
+    borderRadius: 8,
+    padding: 8,
+    zIndex: 1,
+  },
+  selectorOption: {
+    padding: 8,
+    borderRadius: 4,
+    marginBottom: 4,
+    backgroundColor: '#2D2D2D',
+  },
+  card: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    backgroundColor: '#1F1F1F',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  image: {
+    width: 100,
+    height: 120,
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+  },
+  textContainer: {
+    flex: 1,
+    padding: 8,
+  },
+  name: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  description: {
+    fontSize: 14,
+    color: 'white',
+  },
+  details: {
+    fontSize: 12,
+    color: 'white',
+    marginTop: 4,
+  },
+  favorite: {
+    fontSize: 12,
+    color: '#ffa500',
+    marginTop: 4,
   },
 });
+
+export default ExerciseScreen;

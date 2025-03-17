@@ -1,26 +1,26 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, FlatList, Image, StyleSheet } from 'react-native';
 
-const Musculation = () => {
+const CrossFitHIIT = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [exercises, setExercises] = useState([
     {
       id: '1',
-      name: 'Développé couché avec barre',
+      name: 'Burpees',
       image: require('../assets/images/exercice2.jpg'),
-      description: 'Pourquoi ? Pour renforcer les muscles des pectoraux, des épaules et des triceps'
+      description: 'Cet exercice est un mouvement de musculation complet qui sollicite de nombreux muscles du corps. Il est très efficace pour brûler des calories et améliorer sa condition physique.'
     },
     {
       id: '2',
-      name: 'Curl avec barre EZ',
+      name: ' Mountain Climbers',
       image: require('../assets/images/exercice2.jpg'),
-      description: 'Pourquoi ? Pour renforcer les muscles des biceps'
+      description: ' Cet exercice est un mouvement de musculation complet qui sollicite de nombreux muscles du corps. Il est très efficace pour brûler des calories et améliorer sa condition physique.'
     },
     {
       id: '3',
-      name: 'Squat avec barre',
+      name: ' Jump Squats',
       image: require('../assets/images/exercice2.jpg'),
-      description: 'Pourquoi ? Pour renforcer les muscles des cuisses et des f'
+      description: ' Cet exercice est un mouvement de musculation complet qui sollicite de nombreux muscles du corps. Il est très efficace pour brûler des calories et améliorer sa condition physique.'
     },
     // Ajoutez d'autres exercices ici
   ]);
@@ -99,4 +99,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Musculation;
+export default CrossFitHIIT;
