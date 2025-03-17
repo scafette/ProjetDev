@@ -1,23 +1,26 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Modal, Button, Alert, Platform } from 'react-native';
+import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Modal, Button, Alert, Platform,  } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
 import DateTimePicker from '@react-native-community/datetimepicker'; // Pour mobile
 import 'react-datepicker/dist/react-datepicker.css'; // Pour le web
 import DatePicker from 'react-datepicker'; // Pour le web
 import RNPickerSelect from 'react-native-picker-select';
+import { color } from 'react-native-elements/dist/helpers';
 
 // Types de sports disponibles
 const sportTypes = [
-  { label: 'Course à pied', value: 'Course à pied' },
-  { label: 'Cyclisme', value: 'Cyclisme' },
-  { label: 'Natation', value: 'Natation' },
-  { label: 'Musculation', value: 'Musculation' },
-  { label: 'Yoga', value: 'Yoga' },
+  { label: 'Course à pied', value: 'Course à pied' , color: 'black' },
+  { label: 'Cyclisme', value: 'Cyclisme' , color: 'black' },
+  { label: 'Natation', value: 'Natation' , color: 'black' },
+  { label: 'Musculation', value: 'Musculation' , color: 'black' },
+  { label: 'Yoga', value: 'Yoga' , color: 'black' },
 ];
 
 // Exercices disponibles par type de sport
-const exercisesByType: { [key: string]: string[] } = {
+const exercisesByType: { [key: string]: string[] , } = {
   'Course à pied': ['Footing', 'Fractionné', 'Endurance'],
   Cyclisme: ['Sortie longue', 'Montée', 'Entraînement intensif'],
   Natation: ['Brasse', 'Crawl', 'Papillon'],
@@ -293,35 +296,37 @@ export default function PlanningScreen() {
           </Text>
 
           {/* Sélecteur de date */}
-          {Platform.OS === 'web' ? (
+            {Platform.OS === 'web' ? (
             <DatePicker
               selected={form.date ? new Date(form.date) : null}
               onChange={handleDateChangeWeb}
               dateFormat="yyyy-MM-dd"
               placeholderText="Sélectionner une date"
               className="date-picker"
+              customInput={<input style={{ color: '#FFFFFF' }} />}
             />
-          ) : (
+            ) : (
             <>
               <TouchableOpacity
-                style={styles.input}
-                onPress={() => setShowDatePicker(true)}
+              style={styles.input}
+              onPress={() => setShowDatePicker(true)}
               >
-                <Text>{form.date || 'Sélectionner une date'}</Text>
+              <Text style={{ color: '#FFFFFF' }}>{form.date || 'Sélectionner une date'}</Text>
               </TouchableOpacity>
               {showDatePicker && (
-                <DateTimePicker
-                  value={new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={handleDateChangeMobile}
-                />
+              <DateTimePicker
+                value={new Date()}
+                mode="date"
+                display="default"
+                onChange={handleDateChangeMobile}
+                textColor="#FFFFFF"
+              />
               )}
             </>
-          )}
+            )}
 
           {/* Sélecteur de type de sport */}
-          <View style={styles.pickerContainer}>
+          <View style={styles.pickerContainers}>
             <RNPickerSelect
               onValueChange={handleTypeChange}
               items={sportTypes}
@@ -416,6 +421,7 @@ export default function PlanningScreen() {
               value={form.exercises}
               style={pickerSelectStyles}
               Icon={() => <Ionicons name="chevron-down" size={20} color="#00b80e" />}
+              
             />
           </View>
 
@@ -433,6 +439,10 @@ export default function PlanningScreen() {
           </View>
         </View>
       </Modal>
+      {/* Section Footer */}
+            <ThemedView style={styles.footer}>
+              <ThemedText style={styles.footerText}>@Créé par Elmir Elias, Giovanni Mascaro, Ilyes Zekri</ThemedText>
+            </ThemedView>
     </ScrollView>
   );
 }
@@ -447,10 +457,12 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 25,
     fontWeight: 'bold',
     marginBottom: 16,
+    marginTop: 36,
     color: '#FFFFFF',
+    textAlign: 'center',
   },
   calendarContainer: {
     backgroundColor: '#2D2D2D',
@@ -468,6 +480,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 16,
     color: '#FFFFFF',
+    
   },
   historyButton: {
     backgroundColor: '#00b80e',
@@ -475,10 +488,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     marginBottom: 16,
+    
   },
   historyButtonText: {
     fontSize: 16,
     color: '#FFFFFF',
+    textAlign: 'center',
   },
   sessionCard: {
     backgroundColor: '#2D2D2D',
@@ -513,13 +528,15 @@ const styles = StyleSheet.create({
     padding: 16,
     justifyContent: 'center',
     backgroundColor: '#1F1F1F',
+    
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 86,
     textAlign: 'center',
     color: '#FFFFFF',
+    marginTop: 56,
   },
   input: {
     borderWidth: 1,
@@ -528,21 +545,42 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 16,
     backgroundColor: '#2D2D2D',
-   
+    
   },
   pickerContainer: {
     flex: 1,
     marginHorizontal: 4, // Espacement entre les sélecteurs
-    
+    color: '#FFFFFF',
+  },
+  pickerContainers: {
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    marginTop: 220,
   },
   pickerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 16,
     
+    
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+  },
+  footer: {
+    backgroundColor: '#1F1F1F', // Couleur de fond du footer
+    padding: 26, // Espace intérieur
+    alignItems: 'center', // Centrer le texte horizontalement
+    justifyContent: 'center', // Centrer le texte verticalement
+    marginTop: 4, // Espacement par rapport à la section précédente
+    marginBottom: 84, // Espacement par rapport à la section suivante
+    borderTopWidth: 1, // Bordure supérieure
+    borderTopColor: '#00b80e', // Couleur de la bordure
+  },
+  footerText: {
+    fontSize: 14, // Taille de la police
+    color: '#808080', // Couleur du texte
+    textAlign: 'center', // Centrer le texte
   },
 });
