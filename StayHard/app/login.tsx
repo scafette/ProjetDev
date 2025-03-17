@@ -9,44 +9,46 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from 'react';
 
 type RootStackParamList = {
-  Home: undefined;
-  settings: undefined;
+  Home: undefined; // Utilise le chemin complet
   register: undefined;
+  "(tabs)":undefined;
 };
+
+  
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
 
+export default function HomeScreen() {      
+const navigation = useNavigation<HomeScreenNavigationProp>(); // Utilisez useNavigation
+
 const [username, setUsername] = useState('');
 const [password, setPassword] = useState('');
 
-  const handleLogin = async () => {
-    if (!username || !password) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
-      return;
+const handleLogin = async () => {
+  if (!username || !password) {
+    Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
+    return;
+  }
+
+  try {
+    const response = await axios.post('http://127.0.0.1:5000/login', {
+      username,
+      password,
+    });
+
+    if (response.status === 200) {
+      const { user_id } = response.data;
+      Alert.alert('Succès', 'Connexion réussie !');
+      navigation.navigate('(tabs)');
+    } else {
+      Alert.alert('Erreur', 'Identifiants incorrects.');
     }
-
-    try {
-      const response = await axios.post('http://127.0.0.1:5000/login', {
-        username,
-        password,
-      });
-
-      if (response.status === 200) {
-        const { user_id } = response.data;
-        Alert.alert('Succès', 'Connexion réussie !');
-        // Vous pouvez gérer la navigation vers le profil ici si nécessaire
-      } else {
-        Alert.alert('Erreur', 'Identifiants incorrects.');
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Erreur', 'Une erreur s\'est produite lors de la connexion.');
-    }
-  };
-
-export default function HomeScreen() {      
-const navigation = useNavigation<HomeScreenNavigationProp>(); // Utilisez useNavigation
+  } catch (error) {
+    console.error(error);
+    Alert.alert('Erreur', 'Une erreur s\'est produite lors de la connexion.');
+  }
+};
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Connexion</Text>

@@ -46,6 +46,8 @@ export default function HomeScreen() {
           height: parseFloat(height),
           sport_goal: sportGoal,
         });
+
+        console.log(response);
   
         if (response.status === 201) {
           Alert.alert('Succès', 'Inscription réussie !');
