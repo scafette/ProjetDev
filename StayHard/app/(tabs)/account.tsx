@@ -1,12 +1,13 @@
-import { Image, StyleSheet, Platform, View, TouchableOpacity } from 'react-native';
+import { Image, StyleSheet, Platform, View, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { Ionicons } from '@expo/vector-icons'; // Assurez-vous d'avoir installé @expo/vector-icons
-import { useNavigation } from '@react-navigation/native'; // Importez useNavigation
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 
 type RootStackParamList = {
   Home: undefined;
@@ -17,112 +18,166 @@ type RootStackParamList = {
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
 export default function HomeScreen() {
-const navigation = useNavigation<HomeScreenNavigationProp>(); // Utilisez useNavigation
-useEffect(() => {
-  const checkLogin = async () => {
-    const isLoggedIn = await AsyncStorage.getItem('isLoggedIn');
-    if (isLoggedIn !== 'true') {
-      navigation.navigate('login'); // Redirige vers la page de connexion si non connecté
+  const navigation = useNavigation<HomeScreenNavigationProp>();
+  const [userInfo, setUserInfo] = useState<any>(null);
+
+  useEffect(() => {
+    const checkLogin = async () => {
+      const isLoggedIn = await AsyncStorage.getItem('isLoggedIn');
+      if (isLoggedIn !== 'true') {
+        navigation.navigate('login');
+      } else {
+        fetchUserInfo();
+      }
+    };
+
+    checkLogin();
+  }, []);
+
+  const fetchUserInfo = async () => {
+    const user_id = await AsyncStorage.getItem('user_id');
+    if (user_id) {
+      try {
+        const response = await axios.get(`http://127.0.0.1:5000/user/${user_id}`);
+        setUserInfo(response.data);
+      } catch (error) {
+        console.error(error);
+        Alert.alert('Erreur', 'Impossible de récupérer les informations de l\'utilisateur.');
+      }
     }
   };
 
-  checkLogin();
-}, []);
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem('isLoggedIn');
+    await AsyncStorage.removeItem('user_id');
+    navigation.navigate('login');
+  };
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
+    <ScrollView style={styles.container}>
+      {/* Header avec image de profil */}
+      <View style={styles.header}>
         <Image
           source={require('@/assets/images/pp.png')}
-          style={styles.headerImage}
+          style={styles.profileImage}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Mon Profil</ThemedText>
-      </ThemedView>
-
-      {/* button settings qui redirige vers une page  */}
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('settings')}>
-        <Image
-          source={require('@/assets/images/settingsgear.png')}
-          style={{ width: 20, height: 20, marginLeft: 8 }}
-        />
-      </TouchableOpacity>
-
-
-
-
-      {/* Mes Informations */}
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Mes Informations</ThemedText>
-        <ThemedText>
-          Mon nom : blabla blabla{"\n"}
-          Mot de passe : blabla{"\n"}
-          Mon email : blabla@gmail.com
+        <ThemedText type="title" style={styles.profileName}>
+          {userInfo ? userInfo.name : "Chargement..."}
         </ThemedText>
-      </ThemedView>
-
-      {/* Abonnements */}
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Abonnements</ThemedText>
-        <ThemedText>
-          Type d'abonnement : blabla{"\n"}
-          Moyen de paiement : blabla{"\n"}
-          Adresse de livraison : 12 Rue de blabla
-        </ThemedText>
-      </ThemedView>
-
-      {/* Section Changer de profil / Se déconnecter */}
-      <View style={styles.footerContainer}>
-        <TouchableOpacity style={styles.button} onPress={() => console.log("Changer de profil")}>
-          <ThemedText type="defaultSemiBold">Changer de profil</ThemedText>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={() => console.log("Déconnexion")}>
-          <ThemedText type="defaultSemiBold" style={styles.logoutText}>Se déconnecter</ThemedText>
-        </TouchableOpacity>
       </View>
 
-    </ParallaxScrollView>
+      {/* Section des informations personnelles */}
+      <ThemedView style={styles.section}>
+        <ThemedText type="subtitle" style={styles.sectionTitle}>
+          Mes Informations
+        </ThemedText>
+        <View style={styles.infoContainer}>
+          <ThemedText style={styles.infoText}>Âge : {userInfo?.age}</ThemedText>
+          <ThemedText style={styles.infoText}>Poids : {userInfo?.weight} kg</ThemedText>
+          <ThemedText style={styles.infoText}>Taille : {userInfo?.height} cm</ThemedText>
+          <ThemedText style={styles.infoText}>Objectif : {userInfo?.sport_goal}</ThemedText>
+        </View>
+      </ThemedView>
+
+      {/* Section des abonnements */}
+      <ThemedView style={styles.section}>
+        <ThemedText type="subtitle" style={styles.sectionTitle}>
+          Abonnements
+        </ThemedText>
+        <View style={styles.infoContainer}>
+          <ThemedText style={styles.infoText}>Type d'abonnement : Premium</ThemedText>
+          <ThemedText style={styles.infoText}>Moyen de paiement : Carte Visa</ThemedText>
+          <ThemedText style={styles.infoText}>Adresse : 12 Rue de blabla</ThemedText>
+        </View>
+      </ThemedView>
+
+      {/* Boutons d'actions */}
+      <View style={styles.actionsContainer}>
+        <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('settings')}>
+          <Ionicons name="settings" size={20} color="#fff" />
+          <ThemedText style={styles.actionButtonText}>Paramètres</ThemedText>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.actionButton, styles.logoutButton]} onPress={handleLogout}>
+          <Ionicons name="log-out" size={20} color="#fff" />
+          <ThemedText style={styles.actionButtonText}>Déconnexion</ThemedText>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    alignItems: 'center',
+    paddingVertical: 30,
+    backgroundColor: '#007bff',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    borderColor: '#fff',
+  },
+  profileName: {
+    marginTop: 10,
+    fontSize: 24,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  section: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    padding: 15,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#007bff',
+  },
+  infoContainer: {
+    marginLeft: 10,
+  },
+  infoText: {
+    fontSize: 16,
+    marginVertical: 5,
+    color: '#333',
+  },
+  actionsContainer: {
+    margin: 20,
+  },
+  actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  headerImage: {
-    color: '#808080',
-    bottom: -60,
-    left: -50,
-    position: 'absolute'
-  },
-  footerContainer: {
-    marginTop: 20,
-    paddingVertical: 20,
-    alignItems: 'center',
     justifyContent: 'center',
-  },
-  button: {
     backgroundColor: '#007bff',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 10,
     marginVertical: 5,
-    alignItems: 'center',
-    width: '80%',
   },
   logoutButton: {
     backgroundColor: '#d9534f',
   },
-  logoutText: {
-    color: 'white',
-  }
+  actionButtonText: {
+    marginLeft: 10,
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
 });
