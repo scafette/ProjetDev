@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons'; // Assurez-vous d'avoir installé
 import { useNavigation } from '@react-navigation/native'; // Importez useNavigation
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type RootStackParamList = {
   Home: undefined; // Utilise le chemin complet
@@ -25,6 +26,8 @@ const navigation = useNavigation<HomeScreenNavigationProp>(); // Utilisez useNav
 const [username, setUsername] = useState('');
 const [password, setPassword] = useState('');
 
+
+
 const handleLogin = async () => {
   if (!username || !password) {
     Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
@@ -39,6 +42,7 @@ const handleLogin = async () => {
 
     if (response.status === 200) {
       const { user_id } = response.data;
+      await AsyncStorage.setItem('isLoggedIn', 'true'); // Sauvegarde du statut de connexion
       Alert.alert('Succès', 'Connexion réussie !');
       navigation.navigate('(tabs)');
     } else {
@@ -49,6 +53,7 @@ const handleLogin = async () => {
     Alert.alert('Erreur', 'Une erreur s\'est produite lors de la connexion.');
   }
 };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Connexion</Text>
