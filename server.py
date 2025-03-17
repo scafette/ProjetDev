@@ -1,81 +1,275 @@
 from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from flask_socketio import SocketIO
+from flask_bcrypt import Bcrypt
+import sqlite3
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'  # Utilisation d'une DB SQLite
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
-socketio = SocketIO(app, cors_allowed_origins="*")
+bcrypt = Bcrypt(app)
 
-# Modèles de la base de données
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    nom = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(100), unique=True, nullable=False)
-    date_creation = db.Column(db.DateTime, default=db.func.current_timestamp())
+# Connexion à la base de données SQLite
+def get_db_connection():
+    conn = sqlite3.connect('fitness.db')
+    conn.row_factory = sqlite3.Row
+    return conn
 
-class Workout(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    date = db.Column(db.DateTime, default=db.func.current_timestamp())
-    durée = db.Column(db.Integer, nullable=False)
-    type_exercice = db.Column(db.String(100), nullable=False)
-    calories_brûlées = db.Column(db.Integer, nullable=True)
+# Initialisation de la base de données
+def init_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            name TEXT,
+            age INTEGER,
+            weight REAL,
+            height REAL,
+            sport_goal TEXT
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS workouts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            date TEXT,
+            type TEXT,
+            duration INTEGER,
+            exercises TEXT,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS goals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            goal_type TEXT,
+            target_date TEXT,
+            current_progress REAL,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            message TEXT,
+            date TEXT,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+    conn.commit()
+    conn.close()
 
-class Exercise(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    workout_id = db.Column(db.Integer, db.ForeignKey('workout.id'), nullable=False)
-    nom_exercice = db.Column(db.String(100), nullable=False)
-    répétitions = db.Column(db.Integer, nullable=True)
-    poids_utilisé = db.Column(db.Float, nullable=True)
-    durée = db.Column(db.Integer, nullable=True)
+# Routes Flask
 
-# Création de la base de données
-with app.app_context():
-    db.create_all()
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data['username']
+    password = data['password']
+    name = data['name']
+    age = data['age']
+    weight = data['weight']
+    height = data['height']
+    sport_goal = data['sport_goal']
 
+    password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
 
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('INSERT INTO users (username, password_hash, name, age, weight, height, sport_goal) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                   (username, password_hash, name, age, weight, height, sport_goal))
+    conn.commit()
+    conn.close()
 
-# Routes API
-@app.route('/users', methods=['POST'])
-def create_user():
-    data = request.json
-    new_user = User(nom=data['nom'], email=data['email'])
-    db.session.add(new_user)
-    db.session.commit()
-    return jsonify({"message": "Utilisateur créé", "id": new_user.id})
+    return jsonify({'message': 'User registered successfully'}), 201
 
-@app.route('/workouts', methods=['POST'])
-def create_workout():
-    data = request.json
-    new_workout = Workout(
-        user_id=data['user_id'],
-        durée=data['durée'],
-        type_exercice=data['type_exercice'],
-        calories_brûlées=data.get('calories_brûlées', 0)
-    )
-    db.session.add(new_workout)
-    db.session.commit()
-    return jsonify({"message": "Séance ajoutée", "id": new_workout.id})
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data['username']
+    password = data['password']
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
+    user = cursor.fetchone()
+    conn.close()
+
+    if user and bcrypt.check_password_hash(user['password_hash'], password):
+        return jsonify({'message': 'Login successful', 'user_id': user['id']}), 200
+    else:
+        return jsonify({'message': 'Invalid credentials'}), 401
+
+@app.route('/user/<int:user_id>', methods=['GET'])
+def get_user_profile(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+
+    if user:
+        user_profile = {
+            'name': user['name'],
+            'age': user['age'],
+            'weight': user['weight'],
+            'height': user['height'],
+            'sport_goal': user['sport_goal']
+        }
+        return jsonify(user_profile), 200
+    else:
+        return jsonify({'message': 'User not found'}), 404
+
+@app.route('/workout', methods=['POST'])
+def add_workout():
+    data = request.get_json()
+    user_id = data['user_id']
+    date = data['date']
+    workout_type = data['type']
+    duration = data['duration']
+    exercises = data['exercises']
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('INSERT INTO workouts (user_id, date, type, duration, exercises) VALUES (?, ?, ?, ?, ?)',
+                   (user_id, date, workout_type, duration, exercises))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Workout added successfully'}), 201
+
+@app.route('/workout/<int:workout_id>', methods=['PUT'])
+def update_workout(workout_id):
+    data = request.get_json()
+    date = data['date']
+    workout_type = data['type']
+    duration = data['duration']
+    exercises = data['exercises']
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE workouts SET date = ?, type = ?, duration = ?, exercises = ? WHERE id = ?',
+                   (date, workout_type, duration, exercises, workout_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Workout updated successfully'}), 200
+
+@app.route('/workout/<int:workout_id>', methods=['DELETE'])
+def delete_workout(workout_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM workouts WHERE id = ?', (workout_id,))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Workout deleted successfully'}), 200
 
 @app.route('/workouts/<int:user_id>', methods=['GET'])
 def get_workouts(user_id):
-    workouts = Workout.query.filter_by(user_id=user_id).all()
-    return jsonify([{
-        "id": w.id,
-        "date": w.date,
-        "durée": w.durée,
-        "type_exercice": w.type_exercice,
-        "calories_brûlées": w.calories_brûlées
-    } for w in workouts])
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM workouts WHERE user_id = ?', (user_id,))
+    workouts = cursor.fetchall()
+    conn.close()
 
-# WebSockets : suivre les entraînements en temps réel
-@socketio.on('new_workout')
-def handle_new_workout(data):
-    print(f"Nouvelle séance reçue : {data}")
-    socketio.emit('update_workouts', data, broadcast=True)
+    workout_list = []
+    for workout in workouts:
+        workout_list.append({
+            'id': workout['id'],
+            'date': workout['date'],
+            'type': workout['type'],
+            'duration': workout['duration'],
+            'exercises': workout['exercises']
+        })
 
-# Lancer le serveur
+    return jsonify(workout_list), 200
+
+@app.route('/goal', methods=['POST'])
+def set_goal():
+    data = request.get_json()
+    user_id = data['user_id']
+    goal_type = data['goal_type']
+    target_date = data['target_date']
+    current_progress = data['current_progress']
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('INSERT INTO goals (user_id, goal_type, target_date, current_progress) VALUES (?, ?, ?, ?)',
+                   (user_id, goal_type, target_date, current_progress))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Goal set successfully'}), 201
+
+@app.route('/goal/<int:user_id>', methods=['GET'])
+def get_goal(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM goals WHERE user_id = ?', (user_id,))
+    goal = cursor.fetchone()
+    conn.close()
+
+    if goal:
+        goal_info = {
+            'goal_type': goal['goal_type'],
+            'target_date': goal['target_date'],
+            'current_progress': goal['current_progress']
+        }
+        return jsonify(goal_info), 200
+    else:
+        return jsonify({'message': 'No goal set'}), 404
+
+@app.route('/stats/<int:user_id>', methods=['GET'])
+def get_stats(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM workouts WHERE user_id = ?', (user_id,))
+    workouts = cursor.fetchall()
+    conn.close()
+
+    stats = {
+        'total_workouts': len(workouts),
+        'total_duration': sum(workout['duration'] for workout in workouts),
+        'calories_burned': sum(workout['duration'] * 10 for workout in workouts)  # Exemple de calcul de calories
+    }
+
+    return jsonify(stats), 200
+
+@app.route('/notification', methods=['POST'])
+def add_notification():
+    data = request.get_json()
+    user_id = data['user_id']
+    message = data['message']
+    date = data['date']
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('INSERT INTO notifications (user_id, message, date) VALUES (?, ?, ?)',
+                   (user_id, message, date))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Notification added successfully'}), 201
+
+@app.route('/notifications/<int:user_id>', methods=['GET'])
+def get_notifications(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM notifications WHERE user_id = ?', (user_id,))
+    notifications = cursor.fetchall()
+    conn.close()
+
+    notification_list = []
+    for notification in notifications:
+        notification_list.append({
+            'message': notification['message'],
+            'date': notification['date']
+        })
+
+    return jsonify(notification_list), 200
+
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    init_db()
+    app.run(debug=True)
