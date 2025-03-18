@@ -1,9 +1,13 @@
 from flask import Flask, request, jsonify
 from flask_bcrypt import Bcrypt
+from flask_cors import CORS
 import sqlite3
 
 app = Flask(__name__)
+CORS(app)  # Autorise toutes les origines par défaut
 bcrypt = Bcrypt(app)
+# CORS(app, resources={r"/*": {"origins": "http://localhost:8081"}})
+
 
 # Connexion à la base de données SQLite
 def get_db_connection():
@@ -61,6 +65,27 @@ def init_db():
     conn.close()
 
 # Routes Flask
+
+@app.route('/user/<int:user_id>', methods=['PUT'])
+def update_user_profile(user_id):
+    data = request.get_json()
+    name = data.get('name')
+    age = data.get('age')
+    weight = data.get('weight')
+    height = data.get('height')
+    sport_goal = data.get('sport_goal')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE users
+        SET name = ?, age = ?, weight = ?, height = ?, sport_goal = ?
+        WHERE id = ?
+    ''', (name, age, weight, height, sport_goal, user_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'User profile updated successfully'}), 200
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -272,4 +297,4 @@ def get_notifications(user_id):
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0")
