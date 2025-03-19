@@ -80,6 +80,18 @@ def init_db():
         FOREIGN KEY (user_id) REFERENCES users (id)  -- Clé étrangère vers la table users
     );
 ''')
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS nutrition (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            ingredients TEXT NOT NULL,
+            preparation_time INTEGER NOT NULL,
+            calories INTEGER NOT NULL,
+            category TEXT NOT NULL,
+            goal_category TEXT NOT NULL
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -424,6 +436,102 @@ def update_user_subscription(user_id):
         return jsonify({'message': f'Erreur: {str(e)}'}), 500
     finally:
         conn.close()
+
+    @app.route('/nutrition', methods=['POST'])
+    def add_nutrition():
+        data = request.get_json()
+        name = data['name']
+        ingredients = data['ingredients']
+        preparation_time = data['preparation_time']
+        calories = data['calories']
+        category = data['category']
+        goal_category = data['goal_category']
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO nutrition (name, ingredients, preparation_time, calories, category, goal_category)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (name, ingredients, preparation_time, calories, category, goal_category))
+        conn.commit()
+        conn.close()
+
+        return jsonify({'message': 'Nutrition entry added successfully'}), 201
+    
+    @app.route('/nutrition', methods=['POST'])
+    def add_nutrition():
+        data = request.get_json()
+        name = data['name']
+        ingredients = data['ingredients']
+        preparation_time = data['preparation_time']
+        calories = data['calories']
+        category = data['category']
+        goal_category = data['goal_category']
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO nutrition (name, ingredients, preparation_time, calories, category, goal_category)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (name, ingredients, preparation_time, calories, category, goal_category))
+        conn.commit()
+        conn.close()
+
+        return jsonify({'message': 'Nutrition entry added successfully'}), 201
+    
+    @app.route('/nutrition/<int:nutrition_id>', methods=['GET'])
+    def get_nutrition_entry(nutrition_id):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM nutrition WHERE id = ?', (nutrition_id,))
+        entry = cursor.fetchone()
+        conn.close()
+
+        if entry:
+            nutrition_entry = {
+                'id': entry['id'],
+                'name': entry['name'],
+                'ingredients': entry['ingredients'],
+                'preparation_time': entry['preparation_time'],
+                'calories': entry['calories'],
+                'category': entry['category'],
+                'goal_category': entry['goal_category']
+            }
+            return jsonify(nutrition_entry), 200
+        else:
+            return jsonify({'message': 'Nutrition entry not found'}), 404
+        
+    @app.route('/nutrition/<int:nutrition_id>', methods=['PUT'])
+    def update_nutrition(nutrition_id):
+        data = request.get_json()
+        name = data['name']
+        ingredients = data['ingredients']
+        preparation_time = data['preparation_time']
+        calories = data['calories']
+        category = data['category']
+        goal_category = data['goal_category']
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE nutrition
+            SET name = ?, ingredients = ?, preparation_time = ?, calories = ?, category = ?, goal_category = ?
+            WHERE id = ?
+        ''', (name, ingredients, preparation_time, calories, category, goal_category, nutrition_id))
+        conn.commit()
+        conn.close()
+
+        return jsonify({'message': 'Nutrition entry updated successfully'}), 200
+    
+    @app.route('/nutrition/<int:nutrition_id>', methods=['DELETE'])
+    def delete_nutrition(nutrition_id):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM nutrition WHERE id = ?', (nutrition_id,))
+        conn.commit()
+        conn.close()
+
+        return jsonify({'message': 'Nutrition entry deleted successfully'}), 200
 
 
 if __name__ == '__main__':
