@@ -120,6 +120,10 @@ export default function HomeScreen() {
           <ThemedText style={styles.actionButtonText}>Déconnexion</ThemedText>
         </TouchableOpacity>
       </View>
+      {/* Section Footer */}
+            <ThemedView style={styles.footer}>
+              <ThemedText style={styles.footerText}>@Créé par Elmir Elias, Giovanni Mascaro, Ilyes Zekri</ThemedText>
+            </ThemedView>
     </ScrollView>
   );
 }
@@ -127,14 +131,14 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'black',
   },
   header: {
     alignItems: 'center',
     paddingVertical: 30,
-    backgroundColor: '#007bff',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    backgroundColor: '#1F1F1F',
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   profileImage: {
     width: 100,
@@ -154,7 +158,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     padding: 15,
     borderRadius: 10,
-    backgroundColor: '#fff',
+    backgroundColor: '#1F1F1F',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -165,7 +169,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
-    color: '#007bff',
+    color: '#00b80e',
   },
   infoContainer: {
     marginLeft: 10,
@@ -173,7 +177,7 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 16,
     marginVertical: 5,
-    color: '#333',
+    color: 'white',
   },
   actionsContainer: {
     margin: 20,
@@ -196,5 +200,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     fontWeight: 'bold',
+  },
+  footer: {
+    backgroundColor: '#1F1F1F',
+    padding: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+    marginBottom: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#00b80e',
+  },
+  footerText: {
+    fontSize: 14,
+    color: '#808080',
+    textAlign: 'center',
   },
 });
