@@ -352,7 +352,8 @@ def get_exercises():
             'id': exercise['id'],
             'name': exercise['name'],
             'description': exercise['description'],
-            'category': exercise['category']
+            'category': exercise['category'],
+            'image': exercise['image']
         })
 
     return jsonify(exercise_list), 200
