@@ -136,9 +136,10 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     paddingVertical: 30,
-    backgroundColor: '#1F1F1F',
+    backgroundColor: 'transparent',
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
+    marginTop: 20,
   },
   profileImage: {
     width: 100,
@@ -206,8 +207,7 @@ const styles = StyleSheet.create({
     padding: 26,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
-    marginBottom: 4,
+    marginTop: 0,
     borderTopWidth: 1,
     borderTopColor: '#00b80e',
   },
