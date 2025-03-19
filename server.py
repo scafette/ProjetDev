@@ -69,6 +69,15 @@ def init_db():
                 category TEXT
             )
         ''')
+    cursor.execute('''
+       CREATE TABLE IF NOT EXISTS subscriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            price TEXT NOT NULL,
+            color TEXT NOT NULL,
+            features TEXT
+        );
+    ''')
     conn.commit()
     conn.close()
 
@@ -357,6 +366,27 @@ def get_exercises():
         })
 
     return jsonify(exercise_list), 200
+
+@app.route('/subscriptions', methods=['GET'])
+def get_subscriptions():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM subscriptions')
+    subscriptions = cursor.fetchall()
+    conn.close()
+
+    subscription_list = []
+    for subscription in subscriptions:
+        subscription_list.append({
+            'id': subscription['id'],
+            'name': subscription['name'],
+            'price': subscription['price'],
+            'color': subscription['color'],
+            'features': subscription['features'].split(',')  # Convertit les fonctionnalités en liste
+        })
+
+    return jsonify(subscription_list), 200
+
 
 if __name__ == '__main__':
     init_db()
