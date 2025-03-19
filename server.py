@@ -70,14 +70,16 @@ def init_db():
             )
         ''')
     cursor.execute('''
-       CREATE TABLE IF NOT EXISTS subscriptions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE,
-            price TEXT NOT NULL,
-            color TEXT NOT NULL,
-            features TEXT
-        );
-    ''')
+   CREATE TABLE IF NOT EXISTS subscriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,  -- Ajout de la colonne user_id
+        name TEXT NOT NULL UNIQUE,
+        price TEXT NOT NULL,
+        color TEXT NOT NULL,
+        features TEXT,
+        FOREIGN KEY (user_id) REFERENCES users (id)  -- Clé étrangère vers la table users
+    );
+''')
     conn.commit()
     conn.close()
 
@@ -386,6 +388,42 @@ def get_subscriptions():
         })
 
     return jsonify(subscription_list), 200
+
+@app.route('/user/<int:user_id>/subscription', methods=['POST'])
+def update_user_subscription(user_id):
+    data = request.get_json()
+    subscription_name = data.get('subscription_name')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Vérifier si l'utilisateur existe
+        cursor.execute('SELECT id FROM users WHERE id = ?', (user_id,))
+        user = cursor.fetchone()
+        if not user:
+            return jsonify({'message': 'Utilisateur non trouvé'}), 404
+
+        # Vérifier si l'abonnement existe
+        cursor.execute('SELECT id FROM subscriptions WHERE name = ?', (subscription_name,))
+        subscription = cursor.fetchone()
+        if not subscription:
+            return jsonify({'message': 'Abonnement non trouvé'}), 404
+
+        # Mettre à jour l'abonnement de l'utilisateur
+        cursor.execute('''
+            UPDATE subscriptions
+            SET user_id = ?
+            WHERE name = ?
+        ''', (user_id, subscription_name))
+
+        conn.commit()
+        return jsonify({'message': 'Abonnement mis à jour avec succès'}), 200
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'message': f'Erreur: {str(e)}'}), 500
+    finally:
+        conn.close()
 
 
 if __name__ == '__main__':
