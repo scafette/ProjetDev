@@ -65,10 +65,42 @@ def init_db():
     conn.close()
 
 # Routes Flask
+@app.route('/user/<int:user_id>/change-password', methods=['PUT'])
+def change_password(user_id):
+    data = request.get_json()
+    old_password = data.get('old_password')
+    new_password = data.get('new_password')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Récupérer le mot de passe actuel de l'utilisateur
+    cursor.execute('SELECT password_hash FROM users WHERE id = ?', (user_id,))
+    user = cursor.fetchone()
+
+    if not user:
+        conn.close()
+        return jsonify({'message': 'Utilisateur non trouvé'}), 404
+
+    # Vérifier si l'ancien mot de passe est correct
+    if not bcrypt.check_password_hash(user['password_hash'], old_password):
+        conn.close()
+        return jsonify({'message': 'Ancien mot de passe incorrect'}), 401
+
+    # Hasher le nouveau mot de passe
+    new_password_hash = bcrypt.generate_password_hash(new_password).decode('utf-8')
+
+    # Mettre à jour le mot de passe dans la base de données
+    cursor.execute('UPDATE users SET password_hash = ? WHERE id = ?', (new_password_hash, user_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Mot de passe mis à jour avec succès'}), 200
 
 @app.route('/user/<int:user_id>', methods=['PUT'])
 def update_user_profile(user_id):
     data = request.get_json()
+    username = data.get('username')
     name = data.get('name')
     age = data.get('age')
     weight = data.get('weight')
@@ -79,9 +111,9 @@ def update_user_profile(user_id):
     cursor = conn.cursor()
     cursor.execute('''
         UPDATE users
-        SET name = ?, age = ?, weight = ?, height = ?, sport_goal = ?
+        SET username = ?, name = ?, age = ?, weight = ?, height = ?, sport_goal = ?
         WHERE id = ?
-    ''', (name, age, weight, height, sport_goal, user_id))
+    ''', (username, name, age, weight, height, sport_goal, user_id))
     conn.commit()
     conn.close()
 
@@ -136,6 +168,7 @@ def get_user_profile(user_id):
 
     if user:
         user_profile = {
+            'username': user['username'],
             'name': user['name'],
             'age': user['age'],
             'weight': user['weight'],
@@ -145,6 +178,7 @@ def get_user_profile(user_id):
         return jsonify(user_profile), 200
     else:
         return jsonify({'message': 'User not found'}), 404
+    
 
 @app.route('/workout', methods=['POST'])
 def add_workout():
@@ -294,6 +328,26 @@ def get_notifications(user_id):
         })
 
     return jsonify(notification_list), 200
+
+@app.route('/exercices', methods=['GET'])
+def get_exercises():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM exercices')
+    exercises = cursor.fetchall()
+    conn.close()
+
+
+    exercise_list = []
+    for exercise in exercises:
+        exercise_list.append({
+            'id': exercise['id'],
+            'name': exercise['name'],
+            'description': exercise['description'],
+            'category': exercise['category']
+        })
+
+    return jsonify(exercise_list), 200
 
 if __name__ == '__main__':
     init_db()
