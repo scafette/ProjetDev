@@ -19,7 +19,24 @@ type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
-  const [userInfo, setUserInfo] = useState<any>(null);
+  const [userInfo, setUserInfo] = useState<{
+    name?: string;
+    age?: number;
+    weight?: number;
+    height?: number;
+    sport_goal?: string;
+  }>({});
+  const [userId, setUserId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const id = await AsyncStorage.getItem('user_id');
+      if (id) {
+        setUserId(parseInt(id, 10));
+      }
+    };
+    fetchUserId();
+  }, []);
 
   useEffect(() => {
     const checkLogin = async () => {
@@ -32,13 +49,13 @@ export default function HomeScreen() {
     };
 
     checkLogin();
-  }, []);
+  }, [userId]);
 
   const fetchUserInfo = async () => {
-    const user_id = await AsyncStorage.getItem('user_id');
-    if (user_id) {
+    if (userId) {
       try {
-        const response = await axios.get(`http://127.0.0.1:5000/user/${user_id}`);
+        const response = await axios.get(`http://192.168.1.166:5000/user/${userId}`);
+        console.log('Informations utilisateur:', response.data); // Log pour vérifier les données
         setUserInfo(response.data);
       } catch (error) {
         console.error(error);
@@ -62,7 +79,7 @@ export default function HomeScreen() {
           style={styles.profileImage}
         />
         <ThemedText type="title" style={styles.profileName}>
-          {userInfo ? userInfo.name : "Chargement..."}
+          {userInfo?.name || "Chargement..."}
         </ThemedText>
       </View>
 

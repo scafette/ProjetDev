@@ -43,6 +43,7 @@ const handleLogin = async () => {
     if (response.status === 200) {
       const { user_id } = response.data;
       await AsyncStorage.setItem('isLoggedIn', 'true'); // Sauvegarde du statut de connexion
+      await AsyncStorage.setItem('user_id', user_id.toString()); // Sauvegarde de l'ID utilisateur
       Alert.alert('Succès', 'Connexion réussie !');
       navigation.navigate('(tabs)');
     } else {
