@@ -495,9 +495,6 @@ export default function PlanningScreen() {
       {/* Section Footer */}
       <ThemedView style={styles.footer}>
         <ThemedText style={styles.footerText}>@Créé par Elmir Elias, Giovanni Mascaro, Ilyes Zekri</ThemedText>
-        <Text style={styles.modalTitle}>
-            user_id: {userId}
-          </Text>
       </ThemedView>
     </ScrollView>
   );
