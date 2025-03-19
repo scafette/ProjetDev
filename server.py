@@ -43,6 +43,14 @@ def init_db():
         )
     ''')
     cursor.execute('''
+            CREATE TABLE IF NOT EXISTS exercices (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                description TEXT,
+                category TEXT
+            )
+        ''')
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS goals (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
@@ -298,3 +306,22 @@ def get_notifications(user_id):
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, host="0.0.0.0")
+
+@app.route('/exercises', methods=['GET'])
+def get_exercises():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM exercices')
+    exercises = cursor.fetchall()
+    conn.close()
+
+    exercise_list = []
+    for exercise in exercises:
+        exercise_list.append({
+            'id': exercise['id'],
+            'name': exercise['name'],
+            'description': exercise['description'],
+            'category': exercise['category']
+        })
+
+    return jsonify(exercise_list), 200
