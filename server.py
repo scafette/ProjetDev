@@ -303,17 +303,14 @@ def get_notifications(user_id):
 
     return jsonify(notification_list), 200
 
-if __name__ == '__main__':
-    init_db()
-    app.run(debug=True, host="0.0.0.0")
-
-@app.route('/exercises', methods=['GET'])
+@app.route('/exercices', methods=['GET'])
 def get_exercises():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM exercices')
     exercises = cursor.fetchall()
     conn.close()
+    
 
     exercise_list = []
     for exercise in exercises:
@@ -325,3 +322,8 @@ def get_exercises():
         })
 
     return jsonify(exercise_list), 200
+
+if __name__ == '__main__':
+    init_db()
+    app.run(debug=True, host="0.0.0.0")
+
