@@ -10,6 +10,7 @@ interface Exercise {
   name: string;
   description: string;
   category: string;
+  image: string; // Add this line
 }
 
 const ExercicePage = () => {
@@ -18,7 +19,7 @@ const ExercicePage = () => {
 
   const fetchExercises = async () => {
     try {
-      const response = await axios.get("http://192.168.1.166:5000/exercices");
+      const response = await axios.get("http://192.168.1.188:5000/exercices");
       setExercises(response.data);
     } catch (error) {
       Alert.alert("Erreur", "Impossible de récupérer les exercices.");
@@ -62,7 +63,7 @@ return (
             keyExtractor={(item) => item.id.toString()}
             renderItem={({ item }) => (
               <View style={styles.card}>
-                <Image source={{ uri: "https://via.placeholder.com/150" }} style={styles.image} />
+                <Image source={{ uri: item.image }} style={styles.image} />
                 <Text style={styles.exerciseTitle}>{item.name}</Text>
                 <Text style={styles.exerciseInfo}>{item.description}</Text>
               </View>
