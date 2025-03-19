@@ -61,6 +61,14 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
+    cursor.execute('''
+            CREATE TABLE IF NOT EXISTS exercices (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                description TEXT,
+                category TEXT
+            )
+        ''')
     conn.commit()
     conn.close()
 
