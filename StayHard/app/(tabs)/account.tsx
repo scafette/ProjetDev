@@ -1,11 +1,10 @@
-import { Image, StyleSheet, Platform, View, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
+import React, { useEffect, useState } from 'react';
+import { Image, StyleSheet, View, TouchableOpacity, Alert, ScrollView, FlatList, Text } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
@@ -17,6 +16,14 @@ type RootStackParamList = {
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
+interface Subscription {
+  id: string;
+  name: string;
+  price: string;
+  color: string;
+  features: string[];
+}
+
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const [userInfo, setUserInfo] = useState<{
@@ -27,6 +34,7 @@ export default function HomeScreen() {
     sport_goal?: string;
   }>({});
   const [userId, setUserId] = useState<number | null>(null);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
 
   useEffect(() => {
     const fetchUserId = async () => {
@@ -45,6 +53,7 @@ export default function HomeScreen() {
         navigation.navigate('login');
       } else {
         fetchUserInfo();
+        fetchSubscriptions();
       }
     };
 
@@ -55,7 +64,7 @@ export default function HomeScreen() {
     if (userId) {
       try {
         const response = await axios.get(`http://192.168.1.166:5000/user/${userId}`);
-        console.log('Informations utilisateur:', response.data); // Log pour vérifier les données
+        console.log('Informations utilisateur:', response.data);
         setUserInfo(response.data);
       } catch (error) {
         console.error(error);
@@ -64,11 +73,38 @@ export default function HomeScreen() {
     }
   };
 
+  const fetchSubscriptions = async () => {
+    try {
+      const response = await axios.get('http://192.168.1.166:5000/subscriptions');
+      setSubscriptions(response.data);
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Erreur', 'Impossible de récupérer les abonnements.');
+    }
+  };
+
   const handleLogout = async () => {
     await AsyncStorage.removeItem('isLoggedIn');
     await AsyncStorage.removeItem('user_id');
     navigation.navigate('login');
   };
+
+  const renderSubscription = ({ item }: { item: Subscription }) => (
+    <View style={[styles.subscriptionCard, { backgroundColor: item.color }]}>
+      <Text style={styles.subscriptionTitle}>{item.name}</Text>
+      <Text style={styles.subscriptionPrice}>{item.price}</Text>
+      <View style={styles.featuresContainer}>
+        {item.features.map((feature: string, index: number) => (
+          <Text key={index} style={styles.featureText}>
+            • {feature}
+          </Text>
+        ))}
+      </View>
+      <TouchableOpacity style={styles.subscriptionButton}>
+        <Text style={styles.subscriptionButtonText}>Choisir</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <ScrollView style={styles.container}>
@@ -101,11 +137,14 @@ export default function HomeScreen() {
         <ThemedText type="subtitle" style={styles.sectionTitle}>
           Abonnements
         </ThemedText>
-        <View style={styles.infoContainer}>
-          <ThemedText style={styles.infoText}>Type d'abonnement : Premium</ThemedText>
-          <ThemedText style={styles.infoText}>Moyen de paiement : Carte Visa</ThemedText>
-          <ThemedText style={styles.infoText}>Adresse : 12 Rue de blabla</ThemedText>
-        </View>
+        <FlatList
+          data={subscriptions}
+          renderItem={renderSubscription}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.subscriptionList}
+        />
       </ThemedView>
 
       {/* Boutons d'actions */}
@@ -120,10 +159,11 @@ export default function HomeScreen() {
           <ThemedText style={styles.actionButtonText}>Déconnexion</ThemedText>
         </TouchableOpacity>
       </View>
+
       {/* Section Footer */}
-            <ThemedView style={styles.footer}>
-              <ThemedText style={styles.footerText}>@Créé par Elmir Elias, Giovanni Mascaro, Ilyes Zekri</ThemedText>
-            </ThemedView>
+      <ThemedView style={styles.footer}>
+        <ThemedText style={styles.footerText}>@Créé par Elmir Elias, Giovanni Mascaro, Ilyes Zekri</ThemedText>
+      </ThemedView>
     </ScrollView>
   );
 }
@@ -210,10 +250,52 @@ const styles = StyleSheet.create({
     marginTop: 0,
     borderTopWidth: 1,
     borderTopColor: '#00b80e',
+    marginBottom: 80,
   },
   footerText: {
     fontSize: 14,
     color: '#808080',
     textAlign: 'center',
+  },
+  subscriptionList: {
+    paddingHorizontal: 10,
+  },
+  subscriptionCard: {
+    width: 200,
+    padding: 15,
+    borderRadius: 10,
+    marginRight: 10,
+    justifyContent: 'space-between',
+  },
+  subscriptionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  subscriptionPrice: {
+    fontSize: 16,
+    color: '#fff',
+    textAlign: 'center',
+    marginVertical: 10,
+  },
+  featuresContainer: {
+    marginBottom: 10,
+  },
+  featureText: {
+    fontSize: 14,
+    color: '#fff',
+    marginVertical: 2,
+  },
+  subscriptionButton: {
+    backgroundColor: '#fff',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  subscriptionButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
   },
 });
