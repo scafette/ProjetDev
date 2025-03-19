@@ -1,30 +1,31 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, FlatList, Image, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TextInput, FlatList, Image, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import axios from 'axios';
 
 const FunctionalTraining = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [exercises, setExercises] = useState([
-    {
-      id: '1',
-      name: 'Jumping Jacks',
-      image: require('../assets/images/exercice2.jpg'),
-      description: 'Cardio, coordination et endurance musculaire'
-    },
-    {
-      id: '2',
-      name: 'High Knees',
-      image: require('../assets/images/exercice2.jpg'),
-      description: 'Cardio, explosivité et renforcement du bas du corps'
-    },
-    {
-      id: '3',
-      name: 'Squats au poids du corps',
-      image: require('../assets/images/exercice2.jpg'),
-      description: 'Debout, pieds écartés à la largeur des épaules, pointes légèrement vers extérieur.'
-    },
-    // Ajoutez d'autres exercices ici
-  ]);
+  const [exercises, setExercises] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  // Fonction pour récupérer les exercices de la catégorie "Functional Training"
+  const fetchFunctionalTrainingExercises = async () => {
+    try {
+      const response = await axios.get('http://192.168.1.166:5000/exercices');
+      const functionalTrainingExercises = response.data.filter(exercise => exercise.category === 'Functional Training');
+      setExercises(functionalTrainingExercises);
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible de récupérer les exercices.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Appel de la fonction au chargement de la page
+  useEffect(() => {
+    fetchFunctionalTrainingExercises();
+  }, []);
+
+  // Filtrage des exercices en fonction de la recherche
   const filteredExercises = exercises.filter(exercise =>
     exercise.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -34,22 +35,28 @@ const FunctionalTraining = () => {
       <TextInput
         style={styles.searchBar}
         placeholder="Rechercher un exercice..."
+        placeholderTextColor="#999"
         value={searchQuery}
         onChangeText={setSearchQuery}
       />
-      <FlatList
-        data={filteredExercises}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Image source={item.image} style={styles.image} />
-            <View style={styles.textContainer}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.description}>{item.description}</Text>
+
+      {loading ? (
+        <ActivityIndicator size="large" color="#0000ff" />
+      ) : (
+        <FlatList
+          data={filteredExercises}
+          keyExtractor={item => item.id.toString()}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <Image source={{ uri: item.image }} style={styles.image} />
+              <View style={styles.textContainer}>
+                <Text style={styles.name}>{item.name}</Text>
+                <Text style={styles.description}>{item.description}</Text>
+              </View>
             </View>
-          </View>
-        )}
-      />
+          )}
+        />
+      )}
     </View>
   );
 };
@@ -58,6 +65,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    backgroundColor: 'black',
   },
   searchBar: {
     height: 40,
@@ -66,12 +74,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 8,
     marginBottom: 16,
-    color: 'white',
+    backgroundColor: 'transparent',
   },
   card: {
     flexDirection: 'row',
     marginBottom: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#1F1F1F',
     borderRadius: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -92,10 +100,11 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: 'white',
   },
   description: {
     fontSize: 14,
-    color: '#666',
+    color: 'white',
   },
 });
 

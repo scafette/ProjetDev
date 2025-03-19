@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Image, StyleSheet, View, TouchableOpacity, Alert, ScrollView, FlatList, Text } from 'react-native';
+import {
+  Image,
+  StyleSheet,
+  View,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+  FlatList,
+  Text,
+  ActivityIndicator,
+} from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,6 +45,8 @@ export default function HomeScreen() {
   }>({});
   const [userId, setUserId] = useState<number | null>(null);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [currentSubscription, setCurrentSubscription] = useState<string>('Simple'); // État pour l'abonnement actuel
 
   useEffect(() => {
     const fetchUserId = async () => {
@@ -54,6 +66,7 @@ export default function HomeScreen() {
       } else {
         fetchUserInfo();
         fetchSubscriptions();
+        fetchUserSubscription();
       }
     };
 
@@ -62,6 +75,7 @@ export default function HomeScreen() {
 
   const fetchUserInfo = async () => {
     if (userId) {
+      setIsRefreshing(true);
       try {
         const response = await axios.get(`http://192.168.1.166:5000/user/${userId}`);
         console.log('Informations utilisateur:', response.data);
@@ -69,6 +83,8 @@ export default function HomeScreen() {
       } catch (error) {
         console.error(error);
         Alert.alert('Erreur', 'Impossible de récupérer les informations de l\'utilisateur.');
+      } finally {
+        setIsRefreshing(false);
       }
     }
   };
@@ -83,10 +99,50 @@ export default function HomeScreen() {
     }
   };
 
+  const fetchUserSubscription = async () => {
+    if (userId) {
+      try {
+        const response = await axios.get(`http://192.168.1.166:5000/user/${userId}/subscription`);
+        setCurrentSubscription(response.data.subscription_name);
+      } catch (error) {
+        console.error(error);
+        Alert.alert('Erreur', 'Impossible de récupérer l\'abonnement.');
+      }
+    }
+  };
+
   const handleLogout = async () => {
     await AsyncStorage.removeItem('isLoggedIn');
     await AsyncStorage.removeItem('user_id');
     navigation.navigate('login');
+  };
+
+  const handleSubscriptionChoice = async (subscriptionName: string) => {
+    if (subscriptionName === currentSubscription) {
+      // Résilier l'abonnement (revenir à "Simple")
+      setCurrentSubscription('Simple');
+      try {
+        await axios.post(`http://192.168.1.166:5000/user/${userId}/subscription`, {
+          subscription_name: 'Simple',
+        });
+        Alert.alert('Succès', 'Abonnement résilié avec succès.');
+      } catch (error) {
+        console.error(error);
+        Alert.alert('Erreur', 'Impossible de résilier l\'abonnement.');
+      }
+    } else {
+      // Choisir un nouvel abonnement
+      setCurrentSubscription(subscriptionName);
+      try {
+        await axios.post(`http://192.168.1.166:5000/user/${userId}/subscription`, {
+          subscription_name: subscriptionName,
+        });
+        Alert.alert('Succès', 'Abonnement mis à jour avec succès.');
+      } catch (error) {
+        console.error(error);
+        Alert.alert('Erreur', 'Impossible de mettre à jour l\'abonnement.');
+      }
+    }
   };
 
   const renderSubscription = ({ item }: { item: Subscription }) => (
@@ -100,15 +156,20 @@ export default function HomeScreen() {
           </Text>
         ))}
       </View>
-      <TouchableOpacity style={styles.subscriptionButton}>
-        <Text style={styles.subscriptionButtonText}>Choisir</Text>
+      <TouchableOpacity
+        style={styles.subscriptionButton}
+        onPress={() => handleSubscriptionChoice(item.name)}
+      >
+        <Text style={styles.subscriptionButtonText}>
+          {currentSubscription === item.name ? 'Résilier' : 'Choisir'}
+        </Text>
       </TouchableOpacity>
     </View>
   );
 
   return (
     <ScrollView style={styles.container}>
-      {/* Header avec image de profil */}
+      {/* Header avec image de profil et bouton d'actualisation */}
       <View style={styles.header}>
         <Image
           source={require('@/assets/images/pp.png')}
@@ -117,6 +178,13 @@ export default function HomeScreen() {
         <ThemedText type="title" style={styles.profileName}>
           {userInfo?.name || "Chargement..."}
         </ThemedText>
+        <TouchableOpacity onPress={fetchUserInfo} style={styles.refreshButton}>
+          {isRefreshing ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Ionicons name="refresh" size={24} color="#fff" />
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Section des informations personnelles */}
@@ -180,6 +248,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     marginTop: 20,
+    position: 'relative',
   },
   profileImage: {
     width: 100,
@@ -193,6 +262,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#fff',
     fontWeight: 'bold',
+  },
+  refreshButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    padding: 10,
   },
   section: {
     marginHorizontal: 20,
