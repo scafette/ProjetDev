@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, StyleSheet, ImageBackground, Image, TextInput, Alert } from 'react-native';
 import { Card, Icon } from 'react-native-elements';
 import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { Ionicons } from '@expo/vector-icons'; // Assurez-vous d'avoir installé @expo/vector-icons
 import axios from 'axios';
 
 type RootStackParamList = {
@@ -12,6 +14,7 @@ type RootStackParamList = {
   PetitDejeuner: undefined;
   DéjeunerDîner: undefined;
   Collations: undefined;
+  MealList: { category: string }; // Ajoute cette ligne
 };
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
@@ -79,6 +82,11 @@ const NutritionPage = () => {
       setDailyKcal(parseInt(dailyKcalInput));
     }
     setEditModalVisible(false);
+  };
+
+  // Fonction pour naviguer vers la page des plats
+  const navigateToMeals = (category: string) => {
+    navigation.navigate('MealList', { category });
   };
 
   return (
@@ -164,7 +172,46 @@ const NutritionPage = () => {
       </View>
 
       {/* Affichage des erreurs */}
-      {error && <Text style={{ color: 'red', textAlign: 'center' }}>{error}</Text>}
+      <Text style={{ color: 'red', textAlign: 'center' }}>{error}</Text>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+        {/* Carte SPECIAL PRISE DE MASSE */}
+        <TouchableOpacity style={styles.nutritionCard} onPress={() => navigateToMeals('Special prise de masse')}>
+            <ImageBackground source={require('../assets/images/special_prise_de_masse.jpg')} style={styles.nutritionCardImage} imageStyle={{ borderRadius: 10 }}>
+            <ThemedText style={styles.nutritionCardText}>
+              <ThemedText>SPECIAL PRISE DE MASSE</ThemedText>
+            </ThemedText>
+          </ImageBackground>
+        </TouchableOpacity>
+
+        {/* Carte prise de masse */}
+        <TouchableOpacity style={styles.nutritionCard} onPress={() => navigateToMeals('Prise de masse')}>
+          <Ionicons name="barbell-outline" size={24} color="#00b80e" />
+          <ThemedText style={styles.nutritionCardText}>
+            <ThemedText>Prise de masse</ThemedText>
+          </ThemedText>
+        </TouchableOpacity>
+
+        {/* Carte deficit calorique */}
+        <TouchableOpacity style={styles.nutritionCard} onPress={() => navigateToMeals('Déficit calorique')}>
+          <Ionicons name="flame-outline" size={24} color="#00b80e" />
+          <ThemedText style={styles.nutritionCardText}>
+            <ThemedText>Déficit calorique</ThemedText>
+          </ThemedText>
+        </TouchableOpacity>
+
+        {/* Carte seche */}
+        <TouchableOpacity style={styles.nutritionCard} onPress={() => navigateToMeals('Sèche')}>
+          <Ionicons name="leaf-outline" size={24} color="#00b80e" />
+          <ThemedText style={styles.nutritionCardText}>
+            <ThemedText>Sèche</ThemedText>
+          </ThemedText>
+        </TouchableOpacity>
+      </ScrollView>
+      {/* Section Footer */}
+            <ThemedView style={styles.footer}>
+              <ThemedText style={styles.footerText}>@Créé par Elmir Elias, Giovanni Mascaro, Ilyes Zekri</ThemedText>
+            </ThemedView>
     </ScrollView>
   );
 };
@@ -298,6 +345,60 @@ const styles = StyleSheet.create({
     color: '#007bff',
     marginTop: 5,
   },
+
+  nutritionTrainingContainer: {
+    marginBottom: 24,
+    paddingHorizontal: 16,
+    backgroundColor: 'transparent',
+  },
+  nutritionCard: {
+    backgroundColor: '#1F1F1F',
+    borderRadius: 10,
+    padding: 16,
+    marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    width: 170,
+    height: 220,
+    
+  },
+  nutritionCardText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: 'black',
+    
+  },
+  nutritionCardImage: {
+    width: 170,
+    height: 220,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  footer: {
+    backgroundColor: '#1F1F1F', // Couleur de fond du footer
+    padding: 26, // Espace intérieur
+    alignItems: 'center', // Centrer le texte horizontalement
+    justifyContent: 'center', // Centrer le texte verticalement
+    marginTop: 4, // Espacement par rapport à la section précédente
+    marginBottom: 4, // Espacement par rapport à la section suivante
+    borderTopWidth: 1, // Bordure supérieure
+    borderTopColor: '#00b80e', // Couleur de la bordure
+  },
+  footerText: {
+    fontSize: 14, // Taille de la police
+    color: '#808080', // Couleur du texte
+    textAlign: 'center', // Centrer le texte
+  },
+ 
 });
 
 export default NutritionPage;
