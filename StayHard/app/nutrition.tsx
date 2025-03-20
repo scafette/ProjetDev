@@ -152,7 +152,7 @@ const NutritionPage = () => {
             <ThemedText style={styles.moreText}>Afficher Plus </ThemedText>
           </TouchableOpacity>
         </View>
-        {renderMeals('Diner')}
+        {renderMeals('Dîner')}
 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={styles.sectionTitle}>Collations</Text>
