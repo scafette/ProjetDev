@@ -1,11 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native'; // Importez useNavigation
+import { useNavigation, useRoute } from '@react-navigation/native'; // Importez useRoute
 import { StackNavigationProp } from '@react-navigation/stack';
 
 type RootStackParamList = {
   Home: undefined;
-  Planning: undefined; // Ajoutez d'autres écrans ici
+  MealDetails: { meal: Meal }; // Ajoutez MealDetails avec le type Meal
+  Planning: undefined;
   exercice: undefined;
   Qrcode: undefined;
   nutrition: undefined;
@@ -15,47 +16,45 @@ type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
 // Définissez le type pour les données du plat
 type Meal = {
-  category: string;
+  id: number;
   name: string;
-  kcal: number;
-  time: number;
-  image: any; // ou `number` si vous utilisez require() pour les images locales
-};
-
-// Données du plat (vous pouvez les remplacer par les données réelles plus tard)
-const meal: Meal = {
-  category: 'Petit-déjeuner',
-  name: 'Omelette aux légumes',
-  kcal: 300,
-  time: 15,
-  image: require('../assets/images/nutrition.jpg'), // Remplacez par le chemin de votre image
+  ingredients: string;
+  preparation_time: number;
+  calories: number;
+  category: string;
+  goal_category: string;
+  preparation: string;
+  image: string;
 };
 
 const MealDetails = () => {
-  const navigation = useNavigation<HomeScreenNavigationProp>(); // Utilisez useNavigation
+  const navigation = useNavigation<HomeScreenNavigationProp>();
+  const route = useRoute(); // Utilisez useRoute pour accéder aux paramètres
+  const { meal } = route.params as { meal: Meal }; // Récupérez le plat passé en paramètre
+
   return (
     <View style={styles.container}>
       {/* Image du plat */}
-      <Image source={meal.image} style={styles.mealImage} />
+      <Image source={{ uri: meal.image }} style={styles.mealImage} />
 
       {/* Nom du plat */}
       <Text style={styles.mealName}>{meal.name}</Text>
 
       {/* Détails du plat (kcal et temps) */}
       <Text style={styles.mealDetails}>
-        {meal.kcal} kcal - {meal.time} min
+        {meal.calories} kcal - {meal.preparation_time} min
+      </Text>
+
+      {/* Ingrédients du plat */}
+      <Text style={styles.mealCategory}>
+        Ingrédients:
+        {'\n'}{meal.ingredients}
       </Text>
 
       {/* Recette du plat */}
       <Text style={styles.mealCategory}>
-        Recette: 
-        {'\n'}1. Coupez les légumes en petits morceaux.
-        {'\n'}2. Battez les œufs dans un bol.
-        {'\n'}3. Faites chauffer une poêle avec un peu d'huile.
-        {'\n'}4. Ajoutez les légumes et faites-les revenir pendant 5 minutes.
-        {'\n'}5. Versez les œufs battus sur les légumes.
-        {'\n'}6. Faites cuire jusqu'à ce que les œufs soient bien cuits.
-        {'\n'}7. Servez chaud.
+        Recette:
+        {'\n'}{meal.preparation}
       </Text>
     </View>
   );
@@ -90,8 +89,9 @@ const styles = StyleSheet.create({
   mealCategory: {
     fontSize: 16,
     color: 'white',
-    textAlign: 'center',
+    textAlign: 'left', // Alignement à gauche pour la recette
     fontStyle: 'italic',
+    marginBottom: 10,
   },
 });
 

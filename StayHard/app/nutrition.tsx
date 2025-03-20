@@ -1,39 +1,60 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, StyleSheet, ImageBackground, Image, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Modal, StyleSheet, ImageBackground, Image, TextInput, Alert } from 'react-native';
 import { Card, Icon } from 'react-native-elements';
 import { ThemedText } from '@/components/ThemedText';
-import { useNavigation } from '@react-navigation/native'; // Importez useNavigation
+import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import axios from 'axios';
 
 type RootStackParamList = {
   Home: undefined;
-  MealDetails: { meal: { category: string, name: string, kcal: number, time: number, image: any } };
+  MealDetails: { meal: Meal };
   PetitDejeuner: undefined;
   DéjeunerDîner: undefined;
   Collations: undefined;
-  
 };
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
+type Meal = {
+  id: number;
+  name: string;
+  ingredients: string;
+  preparation_time: number;
+  calories: number;
+  category: string;
+  goal_category: string;
+  preparation: string;
+  image: string;
+};
+
 const NutritionPage = () => {
-  const navigation = useNavigation<HomeScreenNavigationProp>(); // Utilisez useNavigation
+  const navigation = useNavigation<HomeScreenNavigationProp>();
   const [isEditModalVisible, setEditModalVisible] = useState(false);
   const [userGoal, setUserGoal] = useState('Prise de masse');
   const [dailyKcal, setDailyKcal] = useState(2500);
   const [dailyKcalInput, setDailyKcalInput] = useState('');
+  const [meals, setMeals] = useState<Meal[]>([]);
+  const [error, setError] = useState('');
 
-  const meals = [
-    { category: 'Petit-déjeuner', name: 'Omelette aux légumes', kcal: 300, time: 15, image: require('../assets/images/nutrition.jpg') },
-    { category: 'Petit-déjeuner', name: 'Smoothie bowl', kcal: 250, time: 10, image: require('../assets/images/nutrition.jpg') },
-    { category: 'Petit-déjeuner', name: 'Smoothie bowl', kcal: 250, time: 10, image: require('../assets/images/nutrition.jpg') },
-    { category: 'Petit-déjeuner', name: 'Smoothie bowl', kcal: 250, time: 10, image: require('../assets/images/nutrition.jpg') },
-    { category: 'Déjeuner', name: 'Poulet grillé avec quinoa', kcal: 500, time: 30, image: require('../assets/images/nutrition.jpg') },
-    { category: 'Déjeuner', name: 'Salade César', kcal: 400, time: 20, image: require('../assets/images/nutrition.jpg') },
-    { category: 'Dîner', name: 'Saumon avec légumes vapeur', kcal: 450, time: 25, image: require('../assets/images/nutrition.jpg') },
-    { category: 'Collations', name: 'Yaourt nature', kcal: 150, time: 5, image: require('../assets/images/nutrition.jpg') },
-  ];
+  // Récupérer les plats depuis l'API Flask
+  useEffect(() => {
+    const fetchMeals = async () => {
+      try {
+        const response = await axios.get('http://192.168.1.166:5000/nutrition');
+        setMeals(response.data);
+        console.log('Plats:', response.data);
+      } catch (error) {
+        setError('Erreur lors de la récupération des plats');
+        Alert.alert('Erreur', 'Impossible de récupérer les plats. Vérifiez votre connexion ou l\'URL de l\'API.');
+        console.error('Erreur:', error);
+      }
+    };
 
+    fetchMeals();
+  }, []);
+
+  // Filtrer les plats par catégorie
   const renderMeals = (category: string) => {
     const filteredMeals = meals.filter(meal => meal.category === category);
 
@@ -41,10 +62,10 @@ const NutritionPage = () => {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
         {filteredMeals.map((meal, index) => (
           <View key={index} style={styles.mealSquare}>
-            <Image source={meal.image} style={styles.mealImage} />
+            <Image source={{ uri: meal.image }} style={styles.mealImage} />
             <TouchableOpacity onPress={() => navigation.navigate('MealDetails', { meal })}>
-            <Text style={styles.mealName}>{meal.name}</Text>
-            <Text style={styles.mealDetails}>{meal.kcal} kcal - {meal.time} min</Text>
+              <Text style={styles.mealName}>{meal.name}</Text>
+              <Text style={styles.mealDetails}>{meal.calories} kcal - {meal.preparation_time} min</Text>
             </TouchableOpacity>
           </View>
         ))}
@@ -65,16 +86,20 @@ const NutritionPage = () => {
       {/* Section ImageBackground avec Objectif */}
       <View style={styles.header}>
         <ImageBackground source={require('../assets/images/nutrition.jpg')} style={styles.headerImage}>
-          <Text style={styles.headerText}>Mon objectif: {"\n"}</Text><Text style={{ color: 'white', fontWeight: 'bold', fontSize: 24 }}>{dailyKcal}</Text><Text style={styles.headerText2}>kcal/jour</Text>
+          <Text style={styles.headerText}>Mon objectif: {"\n"}</Text>
+          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 24 }}>{dailyKcal}</Text>
+          <Text style={styles.headerText2}>kcal/jour</Text>
           {/* Card Programme en cours */}
           <Card containerStyle={styles.card}>
             <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>Votre programme en cours{"\n"}<Text style={styles.cardSubtitle}>{userGoal}</Text></Text>
+              <Text style={styles.cardTitle}>Votre programme en cours{"\n"}</Text>
+              <Text style={styles.cardSubtitle}>{userGoal}</Text>
               <Icon
                 name="edit"
                 type="material"
                 onPress={() => setEditModalVisible(true)}
                 containerStyle={styles.editIcon}
+                color={'white'}
               />
             </View>
           </Card>
@@ -119,24 +144,27 @@ const NutritionPage = () => {
             <ThemedText style={styles.moreText}>Afficher Plus </ThemedText>
           </TouchableOpacity>
         </View>
-        {renderMeals('Petit-déjeuner')}
+        {renderMeals('Petit déjeuner')}
 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={styles.sectionTitle}>Petit-déjeuner</Text>
+          <Text style={styles.sectionTitle}>Diner</Text>
           <TouchableOpacity onPress={() => navigation.navigate('DéjeunerDîner')}>
             <ThemedText style={styles.moreText}>Afficher Plus </ThemedText>
           </TouchableOpacity>
         </View>
-        {renderMeals('Déjeuner')}
+        {renderMeals('Diner')}
 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={styles.sectionTitle}>Petit-déjeuner</Text>
+          <Text style={styles.sectionTitle}>Collations</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Collations')}>
             <ThemedText style={styles.moreText}>Afficher Plus </ThemedText>
           </TouchableOpacity>
         </View>
-        {renderMeals('Collations')}
+        {renderMeals('Collation')}
       </View>
+
+      {/* Affichage des erreurs */}
+      {error && <Text style={{ color: 'red', textAlign: 'center' }}>{error}</Text>}
     </ScrollView>
   );
 };
@@ -147,7 +175,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'black',
   },
   header: {
-    height: 300, // Augmenter la hauteur de l'en-tête
+    height: 300,
     position: 'relative',
   },
   headerImage: {
@@ -160,22 +188,21 @@ const styles = StyleSheet.create({
   headerText: {
     textAlign: 'center',
     fontWeight: 'bold',
-    marginBottom: 20, // Espacement supplémentaire
-    fontSize: 22, // Augmenter la taille du texte
+    marginBottom: 20,
+    fontSize: 22,
     color: 'white',
   },
   headerText2: {
-    fontSize: 18, // Augmenter la taille du texte
+    fontSize: 18,
     color: 'white',
   },
   card: {
     borderRadius: 10,
-    margin: 20, // Augmenter la marge
-    padding: 20, // Augmenter le padding
-    width: '90%', // Ajuster la largeur
-    alignSelf: 'center', // Centrer la carte
+    margin: 20,
+    padding: 20,
+    width: '90%',
+    alignSelf: 'center',
     backgroundColor: '#1F1F1F',
-    
   },
   cardContent: {
     flexDirection: 'row',
@@ -183,12 +210,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardTitle: {
-    fontSize: 22, // Augmenter la taille du texte
+    fontSize: 22,
     fontWeight: 'bold',
     color: 'white',
   },
   cardSubtitle: {
-    fontSize: 18, // Augmenter la taille du texte
+    fontSize: 18,
     color: 'white',
   },
   editIcon: {
@@ -249,10 +276,10 @@ const styles = StyleSheet.create({
   mealImage: {
     width: 160,
     height: 130,
-    borderTopLeftRadius: 10, // Bord arrondi en haut à gauche
-    borderTopRightRadius: 10, // Bord arrondi en haut à droite
-    borderBottomLeftRadius: 0, // Pas de bord arrondi en bas à gauche
-    borderBottomRightRadius: 0, // Pas de bord arrondi en bas à droite
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     marginBottom: 10,
   },
   mealName: {
@@ -265,7 +292,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'white',
     textAlign: 'center',
-    marginTop: '20%',
+    marginTop: '10%',
   },
   moreText: {
     color: '#007bff',
