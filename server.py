@@ -6,8 +6,6 @@ import sqlite3
 app = Flask(__name__)
 CORS(app)  # Autorise toutes les origines par défaut
 bcrypt = Bcrypt(app)
-# CORS(app, resources={r"/*": {"origins": "http://localhost:8081"}})
-
 
 # Connexion à la base de données SQLite
 def get_db_connection():
@@ -28,7 +26,9 @@ def init_db():
             age INTEGER,
             weight REAL,
             height REAL,
-            sport_goal TEXT
+            sport_goal TEXT,
+            role TEXT DEFAULT 'user',
+            coach_id INTEGER
         )
     ''')
     cursor.execute('''
@@ -39,6 +39,7 @@ def init_db():
             type TEXT,
             duration INTEGER,
             exercises TEXT,
+            status TEXT,
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
@@ -62,25 +63,24 @@ def init_db():
         )
     ''')
     cursor.execute('''
-            CREATE TABLE IF NOT EXISTS exercices (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL UNIQUE,
-                description TEXT,
-                category TEXT
-            )
-        ''')
+        CREATE TABLE IF NOT EXISTS exercices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT,
+            category TEXT
+        )
+    ''')
     cursor.execute('''
-   CREATE TABLE IF NOT EXISTS subscriptions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,  -- Ajout de la colonne user_id
-        name TEXT NOT NULL UNIQUE,
-        price TEXT NOT NULL,
-        color TEXT NOT NULL,
-        features TEXT,
-        FOREIGN KEY (user_id) REFERENCES users (id)  -- Clé étrangère vers la table users
-    );
-''')
-    
+        CREATE TABLE IF NOT EXISTS subscriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            name TEXT NOT NULL UNIQUE,
+            price TEXT NOT NULL,
+            color TEXT NOT NULL,
+            features TEXT,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS nutrition (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,6 +95,95 @@ def init_db():
     conn.commit()
     conn.close()
 
+# Routes Flask
+
+# Route pour obtenir toutes les séances à venir avec les informations des utilisateurs
+@app.route('/admin/workouts', methods=['GET'])
+def get_all_workouts():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT workouts.id, workouts.date, workouts.type, workouts.duration, workouts.exercises, workouts.status,
+               users.id as user_id, users.name as user_name, users.sport_goal, users.coach_id
+        FROM workouts
+        JOIN users ON workouts.user_id = users.id
+        WHERE workouts.date >= date('now')
+    ''')
+    workouts = cursor.fetchall()
+    conn.close()
+
+    workout_list = []
+    for workout in workouts:
+        workout_list.append({
+            'id': workout['id'],
+            'date': workout['date'],
+            'type': workout['type'],
+            'duration': workout['duration'],
+            'exercises': workout['exercises'],
+            'status': workout['status'],
+            'user_id': workout['user_id'],
+            'user_name': workout['user_name'],
+            'sport_goal': workout['sport_goal'],
+            'coach_id': workout['coach_id']
+        })
+
+    return jsonify(workout_list), 200
+
+# Route pour changer le rôle d'un utilisateur
+@app.route('/admin/change-role/<int:user_id>', methods=['PUT'])
+def change_user_role(user_id):
+    data = request.get_json()
+    new_role = data.get('role')
+
+    if new_role not in ['admin', 'coach', 'user']:
+        return jsonify({'message': 'Rôle invalide'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE users SET role = ? WHERE id = ?', (new_role, user_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Rôle mis à jour avec succès'}), 200
+
+# Route pour assigner un coach à un utilisateur
+@app.route('/admin/assign-coach/<int:user_id>', methods=['PUT'])
+def assign_coach(user_id):
+    data = request.get_json()
+    coach_id = data.get('coach_id')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE users SET coach_id = ? WHERE id = ?', (coach_id, user_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Coach assigné avec succès'}), 200
+
+# Route pour obtenir tous les utilisateurs
+@app.route('/admin/users', methods=['GET'])
+def get_all_users():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, username, name, age, weight, height, sport_goal, role, coach_id FROM users')
+    users = cursor.fetchall()
+    conn.close()
+
+    user_list = []
+    for user in users:
+        user_list.append({
+            'id': user['id'],
+            'username': user['username'],
+            'name': user['name'],
+            'age': user['age'],
+            'weight': user['weight'],
+            'height': user['height'],
+            'sport_goal': user['sport_goal'],
+            'role': user['role'],
+            'coach_id': user['coach_id']
+        })
+
+    return jsonify(user_list), 200
 # Routes Flask
 @app.route('/user/<int:user_id>/change-password', methods=['PUT'])
 def change_password(user_id):
@@ -188,6 +277,8 @@ def login():
         return jsonify({'message': 'Login successful', 'user_id': user['id']}), 200
     else:
         return jsonify({'message': 'Invalid credentials'}), 401
+    
+
 
 @app.route('/user/<int:user_id>', methods=['GET'])
 def get_user_profile(user_id):
