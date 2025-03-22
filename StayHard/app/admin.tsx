@@ -33,8 +33,8 @@ const AdminPage = () => {
   // Récupérer les utilisateurs et les séances
   const fetchData = async () => {
     try {
-      const usersResponse = await axios.get('http://172.20.10.6:5000/admin/users');
-      const workoutsResponse = await axios.get('http://172.20.10.6:5000/admin/workouts');
+      const usersResponse = await axios.get('http://192.168.1.166:5000/admin/users');
+      const workoutsResponse = await axios.get('http://192.168.1.166:5000/admin/workouts');
       setUsers(usersResponse.data);
       setWorkouts(workoutsResponse.data);
     } catch (error) {
@@ -53,7 +53,7 @@ const AdminPage = () => {
     if (selectedUserId === -1) return; // Vérifiez si l'utilisateur est sélectionné
 
     try {
-      await axios.put(`http://172.20.10.6:5000/admin/change-role/${selectedUserId}`, { role: selectedRole });
+      await axios.put(`http://192.168.1.166:5000/admin/change-role/${selectedUserId}`, { role: selectedRole });
       Alert.alert('Succès', 'Rôle mis à jour avec succès.');
       fetchData(); // Recharger les données
     } catch (error) {
@@ -66,7 +66,7 @@ const AdminPage = () => {
     if (selectedUserId === -1 || selectedCoachId === -1) return; // Vérifiez si l'utilisateur et le coach sont sélectionnés
 
     try {
-      await axios.put(`http://172.20.10.6:5000/admin/assign-coach/${selectedUserId}`, { coach_id: selectedCoachId });
+      await axios.put(`http://192.168.1.166:5000/admin/assign-coach/${selectedUserId}`, { coach_id: selectedCoachId });
       Alert.alert('Succès', 'Coach assigné avec succès.');
       fetchData(); // Recharger les données
     } catch (error) {

@@ -37,7 +37,7 @@ export default function HomeScreen() {
       }
   
       try {
-        const response = await axios.post('http://192.168.1.166:5000/register', {
+        const response = await axios.post(' http://192.168.1.166:5000/register', {
           username,
           password,
           name,

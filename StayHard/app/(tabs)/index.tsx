@@ -10,54 +10,6 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
-
-async function registerForPushNotifications() {
-  const { status } = await Notifications.requestPermissionsAsync();
-  if (status !== 'granted') {
-    alert('Permission refusée pour les notifications!');
-    return;
-  }
-
-  const token = await Notifications.getExpoPushTokenAsync();
-  console.log('Expo Push Token:', token.data);
-}
-
-useEffect(() => {
-  registerForPushNotifications();
-}, []);
-
-
-
-// Pour envoyer une notification après 2 secondes :
-async function scheduleNotification() {
-  if (Platform.OS === 'web') {
-    console.warn("Les notifications ne sont pas supportées sur le web.");
-    return;
-  }
-
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: "Rappel d'entraînement",
-      body: "C'est l'heure de ton entraînement !",
-    },
-    trigger: {
-      seconds: 60,  // Déclenche la notification après 60 secondes
-      repeats: true, // Permet de répéter la notification
-    } as Notifications.TimeIntervalTriggerInput // 👈 Force TypeScript à reconnaître ce type
-  });
-}
-
-// Appelle la fonction
-scheduleNotification();
-
-
 type RootStackParamList = {
   Home: undefined;
   Planning: undefined; // Ajoutez d'autres écrans ici
@@ -106,7 +58,7 @@ export default function HomeScreen() {
     <ScrollView style={styles.container}>
       {/* Section Titre */}
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">{"Bonjour\nBassem !"}</ThemedText>
+        {/* <ThemedText type="title">{"Bonjour\n" + (username || "Invité") + " !"}</ThemedText> */}
       </ThemedView>
 
       {/* Carte Planning */}

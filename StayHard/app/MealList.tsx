@@ -42,7 +42,7 @@ const navigation = useNavigation<HomeScreenNavigationProp>();
   useEffect(() => {
     const fetchMeals = async () => {
       try {
-        const response = await axios.get('http://172.20.10.6:5000/nutrition');
+        const response = await axios.get(' http://192.168.1.166:5000/nutrition');
         const filteredMeals = response.data.filter((meal: Meal) => meal.goal_category === category);
         setMeals(filteredMeals);
       } catch (error) {
