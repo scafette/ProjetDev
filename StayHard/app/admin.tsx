@@ -7,38 +7,47 @@ interface User {
   id: number;
   username: string;
   name: string;
+  age: number;
+  weight: number;
+  height: number;
+  sport_goal: string;
   role: string;
-  coach_id: number | null;
+  coach_id: number | 0;
 }
 
 interface Workout {
   id: number;
-  user_id: number;
   date: string;
   type: string;
   duration: number;
+  exercises: string;
   status: string;
+  user_id: number;
   user_name: string;
-  coach_id: number | null;
+  sport_goal: string;
+  coach_id: number | 0;
 }
 
 const AdminPage = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedUserId, setSelectedUserId] = useState<number>(-1); // Valeur par défaut
-  const [selectedRole, setSelectedRole] = useState<string>('user');
-  const [selectedCoachId, setSelectedCoachId] = useState<number>(-1); // Valeur par défaut
+  const [selectedUserId, setSelectedUserId] = useState<string>('-1'); // Default value as string
+  const [selectedRole, setSelectedRole] = useState<string>('user'); // Default value as string
+  const [selectedCoachId, setSelectedCoachId] = useState<string>('-1'); // Default value as string
 
-  // Récupérer les utilisateurs et les séances
+  // Fetch users and workouts
   const fetchData = async () => {
     try {
       const usersResponse = await axios.get('http://192.168.1.166:5000/admin/users');
       const workoutsResponse = await axios.get('http://192.168.1.166:5000/admin/workouts');
       setUsers(usersResponse.data);
       setWorkouts(workoutsResponse.data);
+      console.log('Users:', usersResponse.data);
+      console.log('Workouts:', workoutsResponse.data);
     } catch (error) {
       Alert.alert('Erreur', 'Impossible de récupérer les données.');
+      console.error('Fetch error:', error);
     } finally {
       setLoading(false);
     }
@@ -48,54 +57,60 @@ const AdminPage = () => {
     fetchData();
   }, []);
 
-  // Changer le rôle d'un utilisateur
+  // Handle role change
   const handleRoleChange = async () => {
-    if (selectedUserId === -1) return; // Vérifiez si l'utilisateur est sélectionné
+    if (selectedUserId === '-1') return; // Check if a user is selected
 
     try {
       await axios.put(`http://192.168.1.166:5000/admin/change-role/${selectedUserId}`, { role: selectedRole });
       Alert.alert('Succès', 'Rôle mis à jour avec succès.');
-      fetchData(); // Recharger les données
+      fetchData(); // Reload data
     } catch (error) {
       Alert.alert('Erreur', 'Impossible de mettre à jour le rôle.');
+      console.error('Role change error:', error);
     }
   };
 
-  // Assigner un coach à un utilisateur
+  // Handle coach assignment
   const handleAssignCoach = async () => {
-    if (selectedUserId === -1 || selectedCoachId === -1) return; // Vérifiez si l'utilisateur et le coach sont sélectionnés
+    if (selectedUserId === '-1' || selectedCoachId === '-1') return; // Check if user and coach are selected
 
     try {
       await axios.put(`http://192.168.1.166:5000/admin/assign-coach/${selectedUserId}`, { coach_id: selectedCoachId });
       Alert.alert('Succès', 'Coach assigné avec succès.');
-      fetchData(); // Recharger les données
+      fetchData(); // Reload data
     } catch (error) {
       Alert.alert('Erreur', 'Impossible d\'assigner le coach.');
+      console.error('Assign coach error:', error);
     }
   };
 
-  // Filtrage des utilisateurs par rôle
+  // Filter coaches
   const coaches = users.filter((user) => user.role === 'coach');
 
-  // En-tête pour la FlatList
+  // Render header
   const renderHeader = () => (
     <View>
       <View style={styles.header}>
         <Text style={styles.title}>Page Admin</Text>
       </View>
 
-      {/* Section Changer le rôle */}
+      {/* Role change section */}
       <Text style={styles.sectionTitle}>Changer le rôle d'un utilisateur</Text>
-      <Picker
-        selectedValue={selectedUserId}
-        style={styles.picker}
-        onValueChange={(itemValue) => setSelectedUserId(itemValue)}
-      >
-        <Picker.Item label="Sélectionner un utilisateur" value={-1} /> {/* Valeur par défaut */}
-        {users.map((user) => (
-          <Picker.Item key={user.id} label={user.name} value={user.id} />
-        ))}
-      </Picker>
+      {users.length > 0 ? (
+        <Picker
+          selectedValue={selectedUserId}
+          style={styles.picker}
+          onValueChange={(itemValue) => setSelectedUserId(itemValue.toString())} // Ensure value is string
+        >
+          <Picker.Item label="Sélectionner un utilisateur" value="-1" />
+          {users.map((user) => (
+            <Picker.Item key={user.id} label={user.name} value={user.id.toString()} /> // Convert ID to string
+          ))}
+        </Picker>
+      ) : (
+        <Text style={styles.errorText}>Aucun utilisateur disponible</Text>
+      )}
       <Picker
         selectedValue={selectedRole}
         style={styles.picker}
@@ -111,35 +126,43 @@ const AdminPage = () => {
         </Text>
       </View>
 
-      {/* Section Assigner un coach */}
+      {/* Coach assignment section */}
       <Text style={styles.sectionTitle}>Assigner un coach</Text>
-      <Picker
-        selectedValue={selectedUserId}
-        style={styles.picker}
-        onValueChange={(itemValue) => setSelectedUserId(itemValue)}
-      >
-        <Picker.Item label="Sélectionner un utilisateur" value={-1} /> {/* Valeur par défaut */}
-        {users.map((user) => (
-          <Picker.Item key={user.id} label={user.name} value={user.id} />
-        ))}
-      </Picker>
-      <Picker
-        selectedValue={selectedCoachId}
-        style={styles.picker}
-        onValueChange={(itemValue) => setSelectedCoachId(itemValue)}
-      >
-        <Picker.Item label="Sélectionner un coach" value={-1} /> {/* Valeur par défaut */}
-        {coaches.map((coach) => (
-          <Picker.Item key={coach.id} label={coach.name} value={coach.id} />
-        ))}
-      </Picker>
+      {users.length > 0 ? (
+        <Picker
+          selectedValue={selectedUserId}
+          style={styles.picker}
+          onValueChange={(itemValue) => setSelectedUserId(itemValue.toString())} // Ensure value is string
+        >
+          <Picker.Item label="Sélectionner un utilisateur" value="-1" />
+          {users.map((user) => (
+            <Picker.Item key={user.id} label={user.name} value={user.id.toString()} /> // Convert ID to string
+          ))}
+        </Picker>
+      ) : (
+        <Text style={styles.errorText}>Aucun utilisateur disponible</Text>
+      )}
+      {coaches.length > 0 ? (
+        <Picker
+          selectedValue={selectedCoachId}
+          style={styles.picker}
+          onValueChange={(itemValue) => setSelectedCoachId(itemValue.toString())} // Ensure value is string
+        >
+          <Picker.Item label="Sélectionner un coach" value="-1" />
+          {coaches.map((coach) => (
+            <Picker.Item key={coach.id} label={coach.name} value={coach.id.toString()} /> // Convert ID to string
+          ))}
+        </Picker>
+      ) : (
+        <Text style={styles.errorText}>Aucun coach disponible</Text>
+      )}
       <View style={styles.buttonContainer}>
         <Text style={styles.button} onPress={handleAssignCoach}>
           Assigner le coach
         </Text>
       </View>
 
-      {/* Section Séances à venir */}
+      {/* Upcoming workouts section */}
       <Text style={styles.sectionTitle}>Séances à venir</Text>
     </View>
   );
@@ -225,6 +248,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 10,
   },
 });
 
