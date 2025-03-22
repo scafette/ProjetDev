@@ -21,7 +21,7 @@ const ExercicePage = () => {
 
   const fetchExercises = async () => {
     try {
-      const response = await axios.get("http://192.168.1.166:5000/exercices");
+      const response = await axios.get("http://172.20.10.6:5000/exercices");
       setExercises(response.data);
     } catch (error) {
       Alert.alert("Erreur", "Impossible de récupérer les exercices.");

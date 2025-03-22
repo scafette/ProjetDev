@@ -22,6 +22,7 @@ type RootStackParamList = {
   ZoneÉtirementetMobilité: undefined;
   ZoneCrossFitHIIT: undefined;
   ZoneRécupération: undefined;
+  admin: undefined;
 };
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
@@ -178,12 +179,12 @@ export default function HomeScreen() {
           </TouchableOpacity>
 
           {/* Carte Entraînement */}
-          <ThemedView style={styles.trainingCard}>
+          <TouchableOpacity style={styles.nutritionCard} onPress={() => navigation.navigate('admin')}>
             <Ionicons name="barbell-outline" size={24} color="#00b80e" />
             <ThemedText style={styles.trainingCardText}>
               <ThemedText>ENTRAINEMENT</ThemedText>
             </ThemedText>
-          </ThemedView>
+            </TouchableOpacity>
         </ScrollView>
       </ThemedView>
 
