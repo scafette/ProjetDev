@@ -184,7 +184,8 @@ def get_all_users():
         })
 
     return jsonify(user_list), 200
-# Routes Flask
+
+# Route pour changer le mot de passe d'un utilisateur
 @app.route('/user/<int:user_id>/change-password', methods=['PUT'])
 def change_password(user_id):
     data = request.get_json()
@@ -217,6 +218,7 @@ def change_password(user_id):
 
     return jsonify({'message': 'Mot de passe mis à jour avec succès'}), 200
 
+# Route pour mettre à jour le profil d'un utilisateur
 @app.route('/user/<int:user_id>', methods=['PUT'])
 def update_user_profile(user_id):
     data = request.get_json()
@@ -239,6 +241,7 @@ def update_user_profile(user_id):
 
     return jsonify({'message': 'User profile updated successfully'}), 200
 
+# Route pour enregistrer un nouvel utilisateur
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -261,6 +264,7 @@ def register():
 
     return jsonify({'message': 'User registered successfully'}), 201
 
+# Route pour connecter un utilisateur
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -277,9 +281,8 @@ def login():
         return jsonify({'message': 'Login successful', 'user_id': user['id']}), 200
     else:
         return jsonify({'message': 'Invalid credentials'}), 401
-    
 
-
+# Route pour obtenir le profil d'un utilisateur
 @app.route('/user/<int:user_id>', methods=['GET'])
 def get_user_profile(user_id):
     conn = get_db_connection()
@@ -300,8 +303,8 @@ def get_user_profile(user_id):
         return jsonify(user_profile), 200
     else:
         return jsonify({'message': 'User not found'}), 404
-    
 
+# Route pour ajouter une séance d'entraînement
 @app.route('/workout', methods=['POST'])
 def add_workout():
     data = request.get_json()
@@ -320,6 +323,7 @@ def add_workout():
 
     return jsonify({'message': 'Workout added successfully'}), 201
 
+# Route pour mettre à jour une séance d'entraînement
 @app.route('/workout/<int:workout_id>', methods=['PUT'])
 def update_workout(workout_id):
     data = request.get_json()
@@ -337,6 +341,7 @@ def update_workout(workout_id):
 
     return jsonify({'message': 'Workout updated successfully'}), 200
 
+# Route pour supprimer une séance d'entraînement
 @app.route('/workout/<int:workout_id>', methods=['DELETE'])
 def delete_workout(workout_id):
     conn = get_db_connection()
@@ -347,6 +352,7 @@ def delete_workout(workout_id):
 
     return jsonify({'message': 'Workout deleted successfully'}), 200
 
+# Route pour obtenir toutes les séances d'entraînement d'un utilisateur
 @app.route('/workouts/<int:user_id>', methods=['GET'])
 def get_workouts(user_id):
     conn = get_db_connection()
@@ -367,6 +373,7 @@ def get_workouts(user_id):
 
     return jsonify(workout_list), 200
 
+# Route pour définir un objectif
 @app.route('/goal', methods=['POST'])
 def set_goal():
     data = request.get_json()
@@ -384,6 +391,7 @@ def set_goal():
 
     return jsonify({'message': 'Goal set successfully'}), 201
 
+# Route pour obtenir l'objectif d'un utilisateur
 @app.route('/goal/<int:user_id>', methods=['GET'])
 def get_goal(user_id):
     conn = get_db_connection()
@@ -402,6 +410,7 @@ def get_goal(user_id):
     else:
         return jsonify({'message': 'No goal set'}), 404
 
+# Route pour obtenir les statistiques d'un utilisateur
 @app.route('/stats/<int:user_id>', methods=['GET'])
 def get_stats(user_id):
     conn = get_db_connection()
@@ -418,6 +427,7 @@ def get_stats(user_id):
 
     return jsonify(stats), 200
 
+# Route pour ajouter une notification
 @app.route('/notification', methods=['POST'])
 def add_notification():
     data = request.get_json()
@@ -434,6 +444,7 @@ def add_notification():
 
     return jsonify({'message': 'Notification added successfully'}), 201
 
+# Route pour obtenir les notifications d'un utilisateur
 @app.route('/notifications/<int:user_id>', methods=['GET'])
 def get_notifications(user_id):
     conn = get_db_connection()
@@ -451,6 +462,7 @@ def get_notifications(user_id):
 
     return jsonify(notification_list), 200
 
+# Route pour obtenir tous les exercices
 @app.route('/exercices', methods=['GET'])
 def get_exercises():
     conn = get_db_connection()
@@ -459,19 +471,18 @@ def get_exercises():
     exercises = cursor.fetchall()
     conn.close()
 
-
     exercise_list = []
     for exercise in exercises:
         exercise_list.append({
             'id': exercise['id'],
             'name': exercise['name'],
             'description': exercise['description'],
-            'category': exercise['category'],
-            'image': exercise['image']
+            'category': exercise['category']
         })
 
     return jsonify(exercise_list), 200
 
+# Route pour obtenir tous les abonnements
 @app.route('/subscriptions', methods=['GET'])
 def get_subscriptions():
     conn = get_db_connection()
@@ -492,6 +503,7 @@ def get_subscriptions():
 
     return jsonify(subscription_list), 200
 
+# Route pour mettre à jour l'abonnement d'un utilisateur
 @app.route('/user/<int:user_id>/subscription', methods=['POST'])
 def update_user_subscription(user_id):
     data = request.get_json()
@@ -527,29 +539,30 @@ def update_user_subscription(user_id):
         return jsonify({'message': f'Erreur: {str(e)}'}), 500
     finally:
         conn.close()
-        
 
+# Route pour ajouter une entrée nutritionnelle
 @app.route('/nutrition', methods=['POST'])
 def add_nutrition():
-        data = request.get_json()
-        name = data['name']
-        ingredients = data['ingredients']
-        preparation_time = data['preparation_time']
-        calories = data['calories']
-        category = data['category']
-        goal_category = data['goal_category']
+    data = request.get_json()
+    name = data['name']
+    ingredients = data['ingredients']
+    preparation_time = data['preparation_time']
+    calories = data['calories']
+    category = data['category']
+    goal_category = data['goal_category']
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO nutrition (name, ingredients, preparation_time, calories, category, goal_category)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (name, ingredients, preparation_time, calories, category, goal_category))
-        conn.commit()
-        conn.close()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO nutrition (name, ingredients, preparation_time, calories, category, goal_category)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (name, ingredients, preparation_time, calories, category, goal_category))
+    conn.commit()
+    conn.close()
 
-        return jsonify({'message': 'Nutrition entry added successfully'}), 201
-    
+    return jsonify({'message': 'Nutrition entry added successfully'}), 201
+
+# Route pour obtenir toutes les entrées nutritionnelles
 @app.route('/nutrition', methods=['GET'])
 def get_nutrition():
     conn = get_db_connection()
@@ -567,12 +580,12 @@ def get_nutrition():
             'preparation_time': entry['preparation_time'],
             'calories': entry['calories'],
             'category': entry['category'],
-            'goal_category': entry['goal_category'],
-            'preparation': entry['preparation'],
-            'image': entry['image']
+            'goal_category': entry['goal_category']
         })
 
     return jsonify(nutrition_list), 200
+
+# Route pour obtenir une entrée nutritionnelle spécifique
 @app.route('/nutrition/<int:nutrition_id>', methods=['GET'])
 def get_nutrition_entry(nutrition_id):
     conn = get_db_connection()
@@ -595,40 +608,39 @@ def get_nutrition_entry(nutrition_id):
     else:
         return jsonify({'message': 'Nutrition entry not found'}), 404
 
-        
+# Route pour mettre à jour une entrée nutritionnelle
 @app.route('/nutrition/<int:nutrition_id>', methods=['PUT'])
 def update_nutrition(nutrition_id):
-        data = request.get_json()
-        name = data['name']
-        ingredients = data['ingredients']
-        preparation_time = data['preparation_time']
-        calories = data['calories']
-        category = data['category']
-        goal_category = data['goal_category']
+    data = request.get_json()
+    name = data['name']
+    ingredients = data['ingredients']
+    preparation_time = data['preparation_time']
+    calories = data['calories']
+    category = data['category']
+    goal_category = data['goal_category']
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            UPDATE nutrition
-            SET name = ?, ingredients = ?, preparation_time = ?, calories = ?, category = ?, goal_category = ?
-            WHERE id = ?
-        ''', (name, ingredients, preparation_time, calories, category, goal_category, nutrition_id))
-        conn.commit()
-        conn.close()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE nutrition
+        SET name = ?, ingredients = ?, preparation_time = ?, calories = ?, category = ?, goal_category = ?
+        WHERE id = ?
+    ''', (name, ingredients, preparation_time, calories, category, goal_category, nutrition_id))
+    conn.commit()
+    conn.close()
 
-        return jsonify({'message': 'Nutrition entry updated successfully'}), 200
-    
+    return jsonify({'message': 'Nutrition entry updated successfully'}), 200
+
+# Route pour supprimer une entrée nutritionnelle
 @app.route('/nutrition/<int:nutrition_id>', methods=['DELETE'])
 def delete_nutrition(nutrition_id):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('DELETE FROM nutrition WHERE id = ?', (nutrition_id,))
-        conn.commit()
-        conn.close()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM nutrition WHERE id = ?', (nutrition_id,))
+    conn.commit()
+    conn.close()
 
-        return jsonify({'message': 'Nutrition entry deleted successfully'}), 200
-
-
+    return jsonify({'message': 'Nutrition entry deleted successfully'}), 200
 
 if __name__ == '__main__':
     init_db()
