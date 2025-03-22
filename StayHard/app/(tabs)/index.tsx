@@ -37,20 +37,25 @@ useEffect(() => {
 
 // Pour envoyer une notification après 2 secondes :
 async function scheduleNotification() {
-await Notifications.scheduleNotificationAsync({
-  content: {
-    title: "Rappel d'entraînement",
-    body: "C'est l'heure de ton entraînement !",
-  },
-  trigger: {  
-    seconds: 60,  // Déclenche la notification après 60 secondes
-    repeats: true, // Permet de répéter la notification
-  } as Notifications.TimeIntervalTriggerInput // 👈 Force TypeScript à reconnaître ce type
-  
-});
-}
-scheduleNotification();
+  if (Platform.OS === 'web') {
+    console.warn("Les notifications ne sont pas supportées sur le web.");
+    return;
+  }
 
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: "Rappel d'entraînement",
+      body: "C'est l'heure de ton entraînement !",
+    },
+    trigger: {
+      seconds: 60,  // Déclenche la notification après 60 secondes
+      repeats: true, // Permet de répéter la notification
+    } as Notifications.TimeIntervalTriggerInput // 👈 Force TypeScript à reconnaître ce type
+  });
+}
+
+// Appelle la fonction
+scheduleNotification();
 
 
 type RootStackParamList = {
