@@ -192,6 +192,7 @@ const AdminPage = () => {
       )}
     />
   );
+  
 };
 
 const styles = StyleSheet.create({
@@ -208,13 +209,14 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
-    marginTop: 20,
-    marginBottom: 10,
+    marginTop: 10,
+    marginBottom: -50,
   },
   card: {
     backgroundColor: '#333',
@@ -231,11 +233,12 @@ const styles = StyleSheet.create({
     height: 50,
     width: '100%',
     color: '#fff',
-    marginBottom: 10,
+    marginBottom: 80,
   },
   buttonContainer: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 50,
+    marginTop: 150,
   },
   button: {
     backgroundColor: '#00b80e',
