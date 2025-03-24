@@ -8,7 +8,9 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
-  Image
+  Image,
+  Modal,
+  Pressable
 } from 'react-native';
 import { Picker } from "@react-native-picker/picker";
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -43,6 +45,10 @@ export default function Messagerie() {
   const [clients, setClients] = useState<User[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<number[]>([]);
   const [image, setImage] = useState<string | null>(null);
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editedMessage, setEditedMessage] = useState('');
   const socket = useRef<Socket | null>(null);
   const listRef = useRef<FlatList>(null);
 
@@ -70,6 +76,18 @@ export default function Messagerie() {
             }
             return prev;
           });
+        });
+
+        socket.current.on('deleteMessage', (messageId: number) => {
+          setMessages(prev => prev.filter(msg => msg.id !== messageId));
+        });
+
+        socket.current.on('updateMessage', (updatedMessage: Message) => {
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.id === updatedMessage.id ? updatedMessage : msg
+            )
+          );
         });
 
         socket.current.on('onlineUsers', (users: number[]) => {
@@ -135,9 +153,10 @@ export default function Messagerie() {
       const res = await axios.get(
         `http://192.168.1.166:5000/messages/${senderId}/${receiverId}`
       );
-      setMessages(res.data);
+      setMessages(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error('Failed to load messages:', error);
+      setMessages([]);
     }
   };
 
@@ -232,33 +251,97 @@ export default function Messagerie() {
     }
   };
 
+  const handleLongPress = (message: Message) => {
+    if (message.sender_id === userId) {
+      setSelectedMessage(message);
+      setEditedMessage(message.message);
+      setModalVisible(true);
+    }
+  };
+
+  const deleteMessage = async () => {
+    if (!selectedMessage) return;
+    
+    try {
+      await axios.delete(`http://192.168.1.166:5000/messages/${selectedMessage.id}`);
+      setMessages(prev => prev.filter(msg => msg.id !== selectedMessage.id));
+      setModalVisible(false);
+      
+      if (socket.current?.connected) {
+        socket.current.emit('deleteMessage', selectedMessage.id);
+      }
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+      Alert.alert('Erreur', 'Échec de la suppression du message');
+    }
+  };
+
+  const updateMessage = async () => {
+    if (!selectedMessage || !editedMessage.trim()) return;
+    
+    try {
+      const updatedMessage = {
+        ...selectedMessage,
+        message: editedMessage
+      };
+
+      const response = await axios.put(
+        `http://192.168.1.166:5000/messages/${selectedMessage.id}`,
+        { message: editedMessage }
+      );
+
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === selectedMessage.id ? response.data : msg
+        )
+      );
+      
+      if (socket.current?.connected) {
+        socket.current.emit('updateMessage', response.data);
+      }
+      
+      setModalVisible(false);
+      setEditMode(false);
+    } catch (error) {
+      console.error('Failed to update message:', error);
+      Alert.alert('Erreur', 'Échec de la modification du message');
+    }
+  };
+
   const renderMessage = ({ item }: { item: Message }) => {
+    if (!item) return null;
+    
     const isSent = item.sender_id === userId;
     const isOnline = onlineUsers.includes(item.sender_id);
 
     return (
-      <View style={[
-        styles.messageContainer,
-        isSent ? styles.sentMessage : styles.receivedMessage,
-        !item.is_read && !isSent && styles.unreadMessage
-      ]}>
-        {item.image_url && (
-          <Image
-            source={{ uri: `http://192.168.1.166:5000/${item.image_url}` }}
-            style={styles.messageImage}
-            resizeMode="cover"
-          />
-        )}
-        {item.message && <Text style={isSent ? styles.sentMessageText : styles.receivedMessageText}>
-          {item.message}
-        </Text>}
-        <View style={styles.messageFooter}>
-          <Text style={isSent ? styles.sentTimestamp : styles.receivedTimestamp}>
-            {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </Text>
-          {isOnline && !isSent && <View style={styles.onlineIndicator} />}
+      <TouchableOpacity 
+        onLongPress={() => handleLongPress(item)}
+        activeOpacity={0.7}
+      >
+        <View style={[
+          styles.messageContainer,
+          isSent ? styles.sentMessage : styles.receivedMessage,
+          !item.is_read && !isSent && styles.unreadMessage
+        ]}>
+          {item.image_url && (
+            <Image
+              source={{ uri: `http://192.168.1.166:5000/${item.image_url}` }}
+              style={styles.messageImage}
+              resizeMode="cover"
+            />
+          )}
+          {item.message && <Text style={isSent ? styles.sentMessageText : styles.receivedMessageText}>
+            {item.message}
+          </Text>}
+          <View style={styles.messageFooter}>
+            <Text style={isSent ? styles.sentTimestamp : styles.receivedTimestamp}>
+              {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Text>
+            {isOnline && !isSent && <View style={styles.onlineIndicator} />}
+          </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -294,11 +377,20 @@ export default function Messagerie() {
         ref={listRef}
         data={messages}
         renderItem={renderMessage}
-        keyExtractor={item => item.id.toString()}
+        keyExtractor={(item) => {
+          if (!item) return Math.random().toString();
+          if (item.id) return item.id.toString();
+          return Math.random().toString();
+        }}
         contentContainerStyle={styles.messagesList}
         inverted={false}
         onContentSizeChange={() => listRef.current?.scrollToEnd({animated: true})}
         onLayout={() => listRef.current?.scrollToEnd({animated: true})}
+        ListEmptyComponent={
+          <View style={styles.emptyList}>
+            <Text style={styles.emptyListText}>Aucun message à afficher</Text>
+          </View>
+        }
       />
 
       <View style={styles.inputContainer}>
@@ -334,6 +426,69 @@ export default function Messagerie() {
           </TouchableOpacity>
         </View>
       )}
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => {
+          setModalVisible(false);
+          setEditMode(false);
+        }}
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            {editMode ? (
+              <>
+                <TextInput
+                  style={styles.editInput}
+                  value={editedMessage}
+                  onChangeText={setEditedMessage}
+                  multiline
+                />
+                <View style={styles.modalButtons}>
+                  <Pressable
+                    style={[styles.modalButton, styles.saveButton]}
+                    onPress={updateMessage}
+                  >
+                    <Text style={styles.modalButtonText}>Enregistrer</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => setEditMode(false)}
+                  >
+                    <Text style={styles.modalButtonText}>Annuler</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.modalText}>Que voulez-vous faire avec ce message?</Text>
+                <View style={styles.modalButtons}>
+                  <Pressable
+                    style={[styles.modalButton, styles.editButton]}
+                    onPress={() => setEditMode(true)}
+                  >
+                    <Text style={styles.modalButtonText}>Modifier</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.modalButton, styles.deleteButton]}
+                    onPress={deleteMessage}
+                  >
+                    <Text style={styles.modalButtonText}>Supprimer</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => setModalVisible(false)}
+                  >
+                    <Text style={styles.modalButtonText}>Annuler</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -477,5 +632,81 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 25,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    width: '80%',
+  },
+  modalText: {
+    marginBottom: 20,
+    textAlign: 'center',
+    fontSize: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+  },
+  modalButton: {
+    borderRadius: 10,
+    padding: 10,
+    elevation: 2,
+    margin: 5,
+    minWidth: 80,
+  },
+  editButton: {
+    backgroundColor: '#2196F3',
+  },
+  deleteButton: {
+    backgroundColor: '#f44336',
+  },
+  saveButton: {
+    backgroundColor: '#4CAF50',
+  },
+  cancelButton: {
+    backgroundColor: '#cccccc',
+  },
+  modalButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  editInput: {
+    height: 100,
+    width: '100%',
+    borderColor: '#cccccc',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 15,
+    textAlignVertical: 'top',
+  },
+  emptyList: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyListText: {
+    fontSize: 16,
+    color: '#666',
   },
 });
