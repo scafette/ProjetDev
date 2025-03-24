@@ -13,6 +13,7 @@ type RootStackParamList = {
   settings: undefined;
   login: undefined;
   admin: undefined;
+  coach: undefined;
 };
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
@@ -222,6 +223,13 @@ export default function HomeScreen() {
             <Ionicons name="shield-checkmark" size={20} color="#fff" />
             <ThemedText style={styles.actionButtonText}>Admin</ThemedText>
           </TouchableOpacity>
+        )}
+
+        {userInfo.role === 'coach' && (
+            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('coach')}>
+            <Ionicons name="people" size={20} color="#fff" />
+            <ThemedText style={styles.actionButtonText}>Clients</ThemedText>
+            </TouchableOpacity>
         )}
 
         <TouchableOpacity style={[styles.actionButton, styles.logoutButton]} onPress={handleLogout}>
