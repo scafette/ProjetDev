@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
+import datetime
 import sqlite3
 
 app = Flask(__name__)
@@ -17,6 +18,21 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
+    
+    # Table `messages` pour la messagerie
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender_id INTEGER NOT NULL,
+            receiver_id INTEGER NOT NULL,
+            message TEXT NOT NULL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (sender_id) REFERENCES users (id),
+            FOREIGN KEY (receiver_id) REFERENCES users (id)
+        )
+    ''')
+    
+    # Table `users`
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,6 +47,8 @@ def init_db():
             coach_id INTEGER
         )
     ''')
+    
+    # Table `workouts`
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS workouts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,6 +61,8 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
+    
+    # Table `goals`
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS goals (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,6 +73,8 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
+    
+    # Table `notifications`
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS notifications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,6 +84,8 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
+    
+    # Table `exercices`
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS exercices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,6 +94,8 @@ def init_db():
             category TEXT
         )
     ''')
+    
+    # Table `subscriptions`
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS subscriptions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,6 +107,8 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
+    
+    # Table `nutrition`
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS nutrition (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -92,12 +120,121 @@ def init_db():
             goal_category TEXT NOT NULL
         )
     ''')
+    
     conn.commit()
     conn.close()
 
 # Routes Flask
 
-# Route pour obtenir toutes les séances à venir avec les informations des utilisateurs
+# Route pour envoyer un message
+@app.route('/messages', methods=['POST'])
+def send_message():
+    data = request.get_json()
+    sender_id = data['sender_id']
+    receiver_id = data['receiver_id']
+    message = data['message']
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO messages (sender_id, receiver_id, message, timestamp)
+        VALUES (?, ?, ?, ?)
+    ''', (sender_id, receiver_id, message, timestamp))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Message sent successfully'}), 201
+
+# Route pour récupérer les messages entre deux utilisateurs
+@app.route('/messages/<int:sender_id>/<int:receiver_id>', methods=['GET'])
+def get_messages(sender_id, receiver_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT * FROM messages
+        WHERE (sender_id = ? AND receiver_id = ?)
+           OR (sender_id = ? AND receiver_id = ?)
+        ORDER BY timestamp ASC
+    ''', (sender_id, receiver_id, receiver_id, sender_id))
+    messages = cursor.fetchall()
+    conn.close()
+
+    message_list = []
+    for message in messages:
+        message_list.append({
+            'id': message['id'],
+            'sender_id': message['sender_id'],
+            'receiver_id': message['receiver_id'],
+            'message': message['message'],
+            'timestamp': message['timestamp']
+        })
+
+    return jsonify(message_list), 200
+
+# Route pour récupérer les messages d'un utilisateur avec son coach
+@app.route('/messages/coach/<int:user_id>', methods=['GET'])
+def get_messages_with_coach(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Récupérer l'ID du coach de l'utilisateur
+    cursor.execute('SELECT coach_id FROM users WHERE id = ?', (user_id,))
+    coach_id = cursor.fetchone()['coach_id']
+
+    if not coach_id:
+        return jsonify({'message': 'Aucun coach assigné'}), 404
+
+    # Récupérer les messages entre l'utilisateur et son coach
+    cursor.execute('''
+        SELECT * FROM messages
+        WHERE (sender_id = ? AND receiver_id = ?)
+           OR (sender_id = ? AND receiver_id = ?)
+        ORDER BY timestamp ASC
+    ''', (user_id, coach_id, coach_id, user_id))
+    messages = cursor.fetchall()
+    conn.close()
+
+    message_list = []
+    for message in messages:
+        message_list.append({
+            'id': message['id'],
+            'sender_id': message['sender_id'],
+            'receiver_id': message['receiver_id'],
+            'message': message['message'],
+            'timestamp': message['timestamp']
+        })
+
+    return jsonify(message_list), 200
+
+@app.route('/messages/<int:message_id>', methods=['PUT'])
+def update_message(message_id):
+    data = request.get_json()
+    new_message = data.get('message')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE messages
+        SET message = ?
+        WHERE id = ?
+    ''', (new_message, message_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Message updated successfully'}), 200
+
+@app.route('/messages/<int:message_id>', methods=['DELETE'])
+def delete_message(message_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM messages WHERE id = ?', (message_id,))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Message deleted successfully'}), 200
+
+# Routes existantes (non modifiées)
 @app.route('/admin/workouts', methods=['GET'])
 def get_all_workouts():
     conn = get_db_connection()
@@ -129,7 +266,6 @@ def get_all_workouts():
 
     return jsonify(workout_list), 200
 
-# Route pour changer le rôle d'un utilisateur
 @app.route('/admin/change-role/<int:user_id>', methods=['PUT'])
 def change_user_role(user_id):
     data = request.get_json()
@@ -146,7 +282,6 @@ def change_user_role(user_id):
 
     return jsonify({'message': 'Rôle mis à jour avec succès'}), 200
 
-# Route pour assigner un coach à un utilisateur
 @app.route('/admin/assign-coach/<int:user_id>', methods=['PUT'])
 def assign_coach(user_id):
     data = request.get_json()
@@ -160,7 +295,6 @@ def assign_coach(user_id):
 
     return jsonify({'message': 'Coach assigné avec succès'}), 200
 
-# Route pour obtenir tous les utilisateurs
 @app.route('/admin/users', methods=['GET'])
 def get_all_users():
     conn = get_db_connection()
@@ -185,7 +319,6 @@ def get_all_users():
 
     return jsonify(user_list), 200
 
-# Route pour changer le mot de passe d'un utilisateur
 @app.route('/user/<int:user_id>/change-password', methods=['PUT'])
 def change_password(user_id):
     data = request.get_json()
@@ -195,7 +328,6 @@ def change_password(user_id):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Récupérer le mot de passe actuel de l'utilisateur
     cursor.execute('SELECT password_hash FROM users WHERE id = ?', (user_id,))
     user = cursor.fetchone()
 
@@ -203,22 +335,18 @@ def change_password(user_id):
         conn.close()
         return jsonify({'message': 'Utilisateur non trouvé'}), 404
 
-    # Vérifier si l'ancien mot de passe est correct
     if not bcrypt.check_password_hash(user['password_hash'], old_password):
         conn.close()
         return jsonify({'message': 'Ancien mot de passe incorrect'}), 401
 
-    # Hasher le nouveau mot de passe
     new_password_hash = bcrypt.generate_password_hash(new_password).decode('utf-8')
 
-    # Mettre à jour le mot de passe dans la base de données
     cursor.execute('UPDATE users SET password_hash = ? WHERE id = ?', (new_password_hash, user_id))
     conn.commit()
     conn.close()
 
     return jsonify({'message': 'Mot de passe mis à jour avec succès'}), 200
 
-# Route pour mettre à jour le profil d'un utilisateur
 @app.route('/user/<int:user_id>', methods=['PUT'])
 def update_user_profile(user_id):
     data = request.get_json()
@@ -241,7 +369,6 @@ def update_user_profile(user_id):
 
     return jsonify({'message': 'User profile updated successfully'}), 200
 
-# Route pour enregistrer un nouvel utilisateur
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -264,7 +391,6 @@ def register():
 
     return jsonify({'message': 'User registered successfully'}), 201
 
-# Route pour connecter un utilisateur
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -282,7 +408,6 @@ def login():
     else:
         return jsonify({'message': 'Invalid credentials'}), 401
 
-# Route pour obtenir le profil d'un utilisateur
 @app.route('/user/<int:user_id>', methods=['GET'])
 def get_user_profile(user_id):
     conn = get_db_connection()
@@ -298,13 +423,14 @@ def get_user_profile(user_id):
             'age': user['age'],
             'weight': user['weight'],
             'height': user['height'],
-            'sport_goal': user['sport_goal']
+            'sport_goal': user['sport_goal'],
+            'role': user['role'],
+            'coach_id': user['coach_id']
         }
         return jsonify(user_profile), 200
     else:
         return jsonify({'message': 'User not found'}), 404
 
-# Route pour ajouter une séance d'entraînement
 @app.route('/workout', methods=['POST'])
 def add_workout():
     data = request.get_json()
@@ -323,7 +449,6 @@ def add_workout():
 
     return jsonify({'message': 'Workout added successfully'}), 201
 
-# Route pour mettre à jour une séance d'entraînement
 @app.route('/workout/<int:workout_id>', methods=['PUT'])
 def update_workout(workout_id):
     data = request.get_json()
@@ -341,7 +466,6 @@ def update_workout(workout_id):
 
     return jsonify({'message': 'Workout updated successfully'}), 200
 
-# Route pour supprimer une séance d'entraînement
 @app.route('/workout/<int:workout_id>', methods=['DELETE'])
 def delete_workout(workout_id):
     conn = get_db_connection()
@@ -352,7 +476,6 @@ def delete_workout(workout_id):
 
     return jsonify({'message': 'Workout deleted successfully'}), 200
 
-# Route pour obtenir toutes les séances d'entraînement d'un utilisateur
 @app.route('/workouts/<int:user_id>', methods=['GET'])
 def get_workouts(user_id):
     conn = get_db_connection()
@@ -373,7 +496,6 @@ def get_workouts(user_id):
 
     return jsonify(workout_list), 200
 
-# Route pour définir un objectif
 @app.route('/goal', methods=['POST'])
 def set_goal():
     data = request.get_json()
@@ -391,7 +513,6 @@ def set_goal():
 
     return jsonify({'message': 'Goal set successfully'}), 201
 
-# Route pour obtenir l'objectif d'un utilisateur
 @app.route('/goal/<int:user_id>', methods=['GET'])
 def get_goal(user_id):
     conn = get_db_connection()
@@ -410,7 +531,6 @@ def get_goal(user_id):
     else:
         return jsonify({'message': 'No goal set'}), 404
 
-# Route pour obtenir les statistiques d'un utilisateur
 @app.route('/stats/<int:user_id>', methods=['GET'])
 def get_stats(user_id):
     conn = get_db_connection()
@@ -422,12 +542,11 @@ def get_stats(user_id):
     stats = {
         'total_workouts': len(workouts),
         'total_duration': sum(workout['duration'] for workout in workouts),
-        'calories_burned': sum(workout['duration'] * 10 for workout in workouts)  # Exemple de calcul de calories
+        'calories_burned': sum(workout['duration'] * 10 for workout in workouts)
     }
 
     return jsonify(stats), 200
 
-# Route pour ajouter une notification
 @app.route('/notification', methods=['POST'])
 def add_notification():
     data = request.get_json()
@@ -444,7 +563,6 @@ def add_notification():
 
     return jsonify({'message': 'Notification added successfully'}), 201
 
-# Route pour obtenir les notifications d'un utilisateur
 @app.route('/notifications/<int:user_id>', methods=['GET'])
 def get_notifications(user_id):
     conn = get_db_connection()
@@ -462,7 +580,6 @@ def get_notifications(user_id):
 
     return jsonify(notification_list), 200
 
-# Route pour obtenir tous les exercices
 @app.route('/exercices', methods=['GET'])
 def get_exercises():
     conn = get_db_connection()
@@ -482,7 +599,6 @@ def get_exercises():
 
     return jsonify(exercise_list), 200
 
-# Route pour obtenir tous les abonnements
 @app.route('/subscriptions', methods=['GET'])
 def get_subscriptions():
     conn = get_db_connection()
@@ -498,12 +614,11 @@ def get_subscriptions():
             'name': subscription['name'],
             'price': subscription['price'],
             'color': subscription['color'],
-            'features': subscription['features'].split(',')  # Convertit les fonctionnalités en liste
+            'features': subscription['features'].split(',')
         })
 
     return jsonify(subscription_list), 200
 
-# Route pour mettre à jour l'abonnement d'un utilisateur
 @app.route('/user/<int:user_id>/subscription', methods=['POST'])
 def update_user_subscription(user_id):
     data = request.get_json()
@@ -513,19 +628,16 @@ def update_user_subscription(user_id):
     cursor = conn.cursor()
 
     try:
-        # Vérifier si l'utilisateur existe
         cursor.execute('SELECT id FROM users WHERE id = ?', (user_id,))
         user = cursor.fetchone()
         if not user:
             return jsonify({'message': 'Utilisateur non trouvé'}), 404
 
-        # Vérifier si l'abonnement existe
         cursor.execute('SELECT id FROM subscriptions WHERE name = ?', (subscription_name,))
         subscription = cursor.fetchone()
         if not subscription:
             return jsonify({'message': 'Abonnement non trouvé'}), 404
 
-        # Mettre à jour l'abonnement de l'utilisateur
         cursor.execute('''
             UPDATE subscriptions
             SET user_id = ?
@@ -540,7 +652,6 @@ def update_user_subscription(user_id):
     finally:
         conn.close()
 
-# Route pour ajouter une entrée nutritionnelle
 @app.route('/nutrition', methods=['POST'])
 def add_nutrition():
     data = request.get_json()
@@ -562,7 +673,6 @@ def add_nutrition():
 
     return jsonify({'message': 'Nutrition entry added successfully'}), 201
 
-# Route pour obtenir toutes les entrées nutritionnelles
 @app.route('/nutrition', methods=['GET'])
 def get_nutrition():
     conn = get_db_connection()
@@ -585,7 +695,6 @@ def get_nutrition():
 
     return jsonify(nutrition_list), 200
 
-# Route pour obtenir une entrée nutritionnelle spécifique
 @app.route('/nutrition/<int:nutrition_id>', methods=['GET'])
 def get_nutrition_entry(nutrition_id):
     conn = get_db_connection()
@@ -608,7 +717,6 @@ def get_nutrition_entry(nutrition_id):
     else:
         return jsonify({'message': 'Nutrition entry not found'}), 404
 
-# Route pour mettre à jour une entrée nutritionnelle
 @app.route('/nutrition/<int:nutrition_id>', methods=['PUT'])
 def update_nutrition(nutrition_id):
     data = request.get_json()
@@ -631,7 +739,6 @@ def update_nutrition(nutrition_id):
 
     return jsonify({'message': 'Nutrition entry updated successfully'}), 200
 
-# Route pour supprimer une entrée nutritionnelle
 @app.route('/nutrition/<int:nutrition_id>', methods=['DELETE'])
 def delete_nutrition(nutrition_id):
     conn = get_db_connection()
