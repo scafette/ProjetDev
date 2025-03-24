@@ -12,12 +12,14 @@ import {
   Modal,
   Pressable
 } from 'react-native';
-import { Picker } from "@react-native-picker/picker";
+import { createStackNavigator, StackNavigationProp } from '@react-navigation/stack';
+import { RouteProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { io, Socket } from 'socket.io-client';
 
+// Types
 type Message = {
   id: number;
   sender_id: number;
@@ -34,77 +36,30 @@ type User = {
   username: string;
 };
 
-export default function Messagerie() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState<string>('');
-  const [userId, setUserId] = useState<number | null>(null);
-  const [coachId, setCoachId] = useState<number | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [userRole, setUserRole] = useState<string>('');
-  const [selectedClient, setSelectedClient] = useState<number | null>(null);
+// Types pour la navigation
+type RootStackParamList = {
+  ClientList: undefined;
+  Messagerie: { clientId: number; clientName: string };
+};
+
+type ClientListNavigationProp = StackNavigationProp<RootStackParamList, 'ClientList'>;
+type MessagerieNavigationProp = StackNavigationProp<RootStackParamList, 'Messagerie'>;
+type MessagerieRouteProp = RouteProp<RootStackParamList, 'Messagerie'>;
+
+interface ClientListProps {
+  navigation: ClientListNavigationProp;
+}
+
+interface MessagerieProps {
+  route: MessagerieRouteProp;
+  navigation: MessagerieNavigationProp;
+}
+
+// Composant Liste des Clients
+function ClientList({ navigation }: ClientListProps) {
   const [clients, setClients] = useState<User[]>([]);
-  const [onlineUsers, setOnlineUsers] = useState<number[]>([]);
-  const [image, setImage] = useState<string | null>(null);
-  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [editedMessage, setEditedMessage] = useState('');
-  const socket = useRef<Socket | null>(null);
-  const listRef = useRef<FlatList>(null);
-
-  useEffect(() => {
-    const setupSocket = async () => {
-      try {
-        socket.current = io('ws://192.168.1.166:5000', {
-          transports: ['websocket'],
-          reconnectionAttempts: 5,
-          reconnectionDelay: 1000,
-        });
-
-        socket.current.on('connect', () => {
-          console.log('Connected to WebSocket server');
-          if (userId) {
-            socket.current?.emit('userConnected', userId);
-          }
-        });
-
-        socket.current.on('newMessage', (message: Message) => {
-          setMessages(prev => {
-            const exists = prev.some(m => m.id === message.id);
-            if (!exists) {
-              return [message, ...prev];
-            }
-            return prev;
-          });
-        });
-
-        socket.current.on('deleteMessage', (messageId: number) => {
-          setMessages(prev => prev.filter(msg => msg.id !== messageId));
-        });
-
-        socket.current.on('updateMessage', (updatedMessage: Message) => {
-          setMessages(prev => 
-            prev.map(msg => 
-              msg.id === updatedMessage.id ? updatedMessage : msg
-            )
-          );
-        });
-
-        socket.current.on('onlineUsers', (users: number[]) => {
-          setOnlineUsers(users);
-        });
-
-      } catch (err) {
-        console.error('Socket setup error:', err);
-      }
-    };
-
-    setupSocket();
-
-    return () => {
-      socket.current?.disconnect();
-    };
-  }, [userId]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [userId, setUserId] = useState<number | null>(null);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -117,29 +72,14 @@ export default function Messagerie() {
 
         const userRes = await axios.get(`http://192.168.1.166:5000/user/${id}`);
         const userData = userRes.data;
-        
-        setUserRole(userData.role);
 
-        if (userData.role === 'user' || userData.role === 'admin') {
-          if (userData.coach_id) {
-            setCoachId(userData.coach_id);
-            loadMessages(userIdNum, userData.coach_id);
-          }
-        } else if (userData.role === 'coach') {
+        if (userData.role === 'coach') {
           const clientsRes = await axios.get(`http://192.168.1.166:5000/coach/clients/${id}`);
           setClients(clientsRes.data);
-          if (clientsRes.data.length > 0) {
-            setSelectedClient(clientsRes.data[0].id);
-            loadMessages(clientsRes.data[0].id, userIdNum);
-          }
-        }
-
-        if (socket.current?.connected && userIdNum) {
-          socket.current.emit('userConnected', userIdNum);
         }
 
       } catch (error) {
-        console.error('Failed to load user data:', error);
+        console.error('Failed to load clients:', error);
       } finally {
         setLoading(false);
       }
@@ -148,23 +88,120 @@ export default function Messagerie() {
     loadUserData();
   }, []);
 
-  const loadMessages = async (senderId: number, receiverId: number) => {
-    try {
-      const res = await axios.get(
-        `http://192.168.1.166:5000/messages/${senderId}/${receiverId}`
-      );
-      setMessages(Array.isArray(res.data) ? res.data : []);
-    } catch (error) {
-      console.error('Failed to load messages:', error);
-      setMessages([]);
-    }
-  };
+  const renderClient = ({ item }: { item: User }) => (
+    <TouchableOpacity
+      style={styles.clientItem}
+      onPress={() => navigation.navigate('Messagerie', { 
+        clientId: item.id,
+        clientName: item.name 
+      })}
+    >
+      <Text style={styles.clientName}>{item.name}</Text>
+      <Text style={styles.clientUsername}>@{item.username}</Text>
+    </TouchableOpacity>
+  );
 
-  const handleClientChange = async (clientId: number) => {
-    if (!userId) return;
-    setSelectedClient(clientId);
-    loadMessages(clientId, userId);
-  };
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007bff" />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.clientListContainer}>
+      <Text style={styles.title}>Mes Clients</Text>
+      <FlatList
+        data={clients}
+        renderItem={renderClient}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.listContainer}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>Aucun client assigné</Text>
+        }
+      />
+    </View>
+  );
+}
+
+// Composant Messagerie
+function MessagerieScreen({ route, navigation }: MessagerieProps) {
+  const { clientId, clientName } = route.params;
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState<string>('');
+  const [userId, setUserId] = useState<number | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [image, setImage] = useState<string | null>(null);
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editedMessage, setEditedMessage] = useState('');
+  const socket = useRef<Socket | null>(null);
+  const listRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const id = await AsyncStorage.getItem('user_id');
+        if (!id) return;
+
+        const userIdNum = parseInt(id, 10);
+        setUserId(userIdNum);
+
+        const res = await axios.get(
+          `http://192.168.1.166:5000/messages/${userIdNum}/${clientId}`
+        );
+        setMessages(Array.isArray(res.data) ? res.data : []);
+
+      } catch (error) {
+        console.error('Failed to load messages:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
+
+    const setupSocket = () => {
+      socket.current = io('ws://192.168.1.166:5000', {
+        transports: ['websocket'],
+      });
+
+      socket.current.on('connect', () => {
+        console.log('Connected to socket');
+      });
+
+      socket.current.on('newMessage', (message: Message) => {
+        if ((message.sender_id === clientId && message.receiver_id === userId) || 
+            (message.sender_id === userId && message.receiver_id === clientId)) {
+          setMessages(prev => [...prev, message]);
+        }
+      });
+
+      socket.current.on('deleteMessage', (messageId: number) => {
+        setMessages(prev => prev.filter(msg => msg.id !== messageId));
+      });
+
+      socket.current.on('updateMessage', (updatedMessage: Message) => {
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === updatedMessage.id ? updatedMessage : msg
+          )
+        );
+      });
+
+      return () => {
+        socket.current?.disconnect();
+      };
+    };
+
+    const socketCleanup = setupSocket();
+
+    return () => {
+      socketCleanup?.();
+    };
+  }, [clientId]);
 
   const pickImage = async () => {
     try {
@@ -185,9 +222,6 @@ export default function Messagerie() {
   const sendMessage = async () => {
     if (!newMessage.trim() && !image) return;
     if (!userId) return;
-
-    const receiverId = userRole === 'coach' ? selectedClient : coachId;
-    if (!receiverId) return;
 
     let tempMessage: Message | null = null;
 
@@ -213,7 +247,7 @@ export default function Messagerie() {
       tempMessage = {
         id: Date.now(),
         sender_id: userId,
-        receiver_id: receiverId,
+        receiver_id: clientId,
         message: newMessage,
         image_url: imageUrl || undefined,
         is_read: false,
@@ -225,22 +259,9 @@ export default function Messagerie() {
       setImage(null);
 
       if (socket.current?.connected) {
-        socket.current.emit('sendMessage', tempMessage, (ack: any) => {
-          if (ack?.status === 'received' && ack?.message) {
-            setMessages(prev => 
-              prev.map(msg => 
-                msg.id === tempMessage!.id ? { ...ack.message, id: ack.message.id } : msg
-              )
-            );
-          }
-        });
+        socket.current.emit('sendMessage', tempMessage);
       } else {
-        const response = await axios.post('http://192.168.1.166:5000/messages', tempMessage);
-        setMessages(prev => 
-          prev.map(msg => 
-            msg.id === tempMessage!.id ? response.data : msg
-          )
-        );
+        await axios.post('http://192.168.1.166:5000/messages', tempMessage);
       }
 
     } catch (error) {
@@ -280,11 +301,6 @@ export default function Messagerie() {
     if (!selectedMessage || !editedMessage.trim()) return;
     
     try {
-      const updatedMessage = {
-        ...selectedMessage,
-        message: editedMessage
-      };
-
       const response = await axios.put(
         `http://192.168.1.166:5000/messages/${selectedMessage.id}`,
         { message: editedMessage }
@@ -309,10 +325,7 @@ export default function Messagerie() {
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
-    if (!item) return null;
-    
     const isSent = item.sender_id === userId;
-    const isOnline = onlineUsers.includes(item.sender_id);
 
     return (
       <TouchableOpacity 
@@ -322,7 +335,6 @@ export default function Messagerie() {
         <View style={[
           styles.messageContainer,
           isSent ? styles.sentMessage : styles.receivedMessage,
-          !item.is_read && !isSent && styles.unreadMessage
         ]}>
           {item.image_url && (
             <Image
@@ -338,7 +350,6 @@ export default function Messagerie() {
             <Text style={isSent ? styles.sentTimestamp : styles.receivedTimestamp}>
               {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </Text>
-            {isOnline && !isSent && <View style={styles.onlineIndicator} />}
           </View>
         </View>
       </TouchableOpacity>
@@ -355,40 +366,25 @@ export default function Messagerie() {
 
   return (
     <View style={styles.container}>
-      {userRole === 'coach' && clients.length > 0 && (
-        <View style={styles.clientSelector}>
-          <Picker
-            selectedValue={selectedClient?.toString()}
-            onValueChange={(itemValue) => handleClientChange(Number(itemValue))}
-            style={styles.picker}
-          >
-            {clients.map(client => (
-              <Picker.Item
-                key={client.id.toString()}
-                label={`${client.name} ${onlineUsers.includes(client.id) ? '🟢' : '⚪'}`}
-                value={client.id.toString()}
-              />
-            ))}
-          </Picker>
-        </View>
-      )}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.backButton}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.clientHeader}>{clientName}</Text>
+      </View>
 
       <FlatList
         ref={listRef}
         data={messages}
         renderItem={renderMessage}
-        keyExtractor={(item) => {
-          if (!item) return Math.random().toString();
-          if (item.id) return item.id.toString();
-          return Math.random().toString();
-        }}
+        keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.messagesList}
         inverted={false}
         onContentSizeChange={() => listRef.current?.scrollToEnd({animated: true})}
         onLayout={() => listRef.current?.scrollToEnd({animated: true})}
         ListEmptyComponent={
           <View style={styles.emptyList}>
-            <Text style={styles.emptyListText}>Aucun message à afficher</Text>
+            <Text style={styles.emptyListText}>Aucun message échangé</Text>
           </View>
         }
       />
@@ -493,26 +489,88 @@ export default function Messagerie() {
   );
 }
 
+// Stack Navigator
+const Stack = createStackNavigator<RootStackParamList>();
+
+export default function MessagerieStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false
+      }}
+    >
+      <Stack.Screen name="ClientList" component={ClientList} />
+      <Stack.Screen name="Messagerie" component={MessagerieScreen} />
+    </Stack.Navigator>
+  );
+}
+
+// Styles
 const styles = StyleSheet.create({
-  container: {
+  clientListContainer: {
     flex: 1,
-    backgroundColor: '#1F1F1F',
+    backgroundColor: '#f5f5f5',
+    padding: 20,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  clientSelector: {
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#333',
+  },
+  listContainer: {
+    paddingBottom: 20,
+  },
+  clientItem: {
+    backgroundColor: 'white',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  clientName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  clientUsername: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 5,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#666',
+    marginTop: 20,
+  },
+  container: {
+    flex: 1,
     backgroundColor: '#1F1F1F',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
   },
-  picker: {
-    height: 50,
-    width: '100%',
+  backButton: {
+    fontSize: 24,
+    marginRight: 15,
+  },
+  clientHeader: {
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   messagesList: {
     padding: 15,
@@ -532,10 +590,6 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     backgroundColor: '#e9e9eb',
     borderTopLeftRadius: 0,
-  },
-  unreadMessage: {
-    borderLeftWidth: 3,
-    borderLeftColor: '#007bff',
   },
   sentMessageText: {
     color: '#fff',
@@ -563,13 +617,6 @@ const styles = StyleSheet.create({
   receivedTimestamp: {
     fontSize: 12,
     color: 'rgba(0, 0, 0, 0.5)',
-  },
-  onlineIndicator: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#4CAF50',
-    marginLeft: 5,
   },
   inputContainer: {
     flexDirection: 'row',
