@@ -3,10 +3,63 @@ from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 import datetime
 import sqlite3
+from flask_socketio import SocketIO, emit
+from werkzeug.utils import secure_filename
+import os
 
 app = Flask(__name__)
-CORS(app)  # Autorise toutes les origines par défaut
+CORS(app)
 bcrypt = Bcrypt(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Configuration
+UPLOAD_FOLDER = 'uploads'
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Gestion des événements Socket.IO
+@socketio.on('connect')
+def handle_connect():
+    print('Client connecté:', request.sid)
+    emit('welcome', {'data': 'Connecté au serveur'})
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print('Client déconnecté:', request.sid)
+
+@socketio.on('userConnected')
+def handle_user_connected(user_id):
+    print(f'Utilisateur {user_id} est en ligne')
+    # Ajoutez la logique pour gérer les utilisateurs en ligne
+
+@socketio.on('sendMessage')
+def handle_send_message(data):
+    print('Message reçu:', data)
+    # Enregistrez le message en base de données
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO messages (sender_id, receiver_id, message, timestamp)
+        VALUES (?, ?, ?, ?)
+    ''', (data['sender_id'], data['receiver_id'], data['message'], datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+    conn.commit()
+    message_id = cursor.lastrowid
+    conn.close()
+    
+    # Récupérez le message complet pour l'envoyer
+    message = {
+        'id': message_id,
+        'sender_id': data['sender_id'],
+        'receiver_id': data['receiver_id'],
+        'message': data['message'],
+        'timestamp': datetime.datetime.now().isoformat(),
+        'is_read': False
+    }
+    
+    # Émettez le message aux concernés
+    emit('newMessage', message, room=str(data['receiver_id']))
+    emit('newMessage', message, room=str(data['sender_id']))
 
 # Connexion à la base de données SQLite
 def get_db_connection():
@@ -19,20 +72,21 @@ def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Table `messages` pour la messagerie
+    # Table messages - Utilisez -- pour les commentaires
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             sender_id INTEGER NOT NULL,
             receiver_id INTEGER NOT NULL,
             message TEXT NOT NULL,
+            is_read BOOLEAN DEFAULT 0,  -- Indique si le message a été lu
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (sender_id) REFERENCES users (id),
             FOREIGN KEY (receiver_id) REFERENCES users (id)
         )
     ''')
     
-    # Table `users`
+    # Table users
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,11 +98,12 @@ def init_db():
             height REAL,
             sport_goal TEXT,
             role TEXT DEFAULT 'user',
-            coach_id INTEGER
+            coach_id INTEGER,
+            last_activity DATETIME  -- Dernière activité de l'utilisateur
         )
     ''')
     
-    # Table `workouts`
+    # Table workouts
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS workouts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,7 +117,7 @@ def init_db():
         )
     ''')
     
-    # Table `goals`
+ 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS goals (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -74,7 +129,6 @@ def init_db():
         )
     ''')
     
-    # Table `notifications`
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS notifications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,7 +139,6 @@ def init_db():
         )
     ''')
     
-    # Table `exercices`
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS exercices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,7 +148,6 @@ def init_db():
         )
     ''')
     
-    # Table `subscriptions`
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS subscriptions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -108,7 +160,6 @@ def init_db():
         )
     ''')
     
-    # Table `nutrition`
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS nutrition (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -121,10 +172,95 @@ def init_db():
         )
     ''')
     
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS client_removals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id INTEGER NOT NULL,
+            coach_id INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (client_id) REFERENCES users (id),
+            FOREIGN KEY (coach_id) REFERENCES users (id)
+        )
+    ''')
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS uploaded_files (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            filename TEXT NOT NULL,
+            filepath TEXT NOT NULL,
+            uploader_id INTEGER NOT NULL,
+            upload_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (uploader_id) REFERENCES users (id)
+        )
+    ''')
+    
     conn.commit()
     conn.close()
 
 # Routes Flask
+
+# Route pour obtenir les clients assignés à un coach
+@app.route('/coach/clients/<int:coach_id>', methods=['GET'])
+def get_coach_clients(coach_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT id, username, name, age, weight, height, sport_goal 
+        FROM users 
+        WHERE coach_id = ?
+    ''', (coach_id,))
+    clients = cursor.fetchall()
+    conn.close()
+
+    client_list = []
+    for client in clients:
+        client_list.append({
+            'id': client['id'],
+            'username': client['username'],
+            'name': client['name'],
+            'age': client['age'],
+            'weight': client['weight'],
+            'height': client['height'],
+            'sport_goal': client['sport_goal']
+        })
+
+    return jsonify(client_list), 200
+
+# Route pour supprimer un client avec raison
+@app.route('/coach/remove-client/<int:client_id>', methods=['DELETE'])
+def remove_client(client_id):
+    data = request.get_json()
+    reason = data.get('reason')
+    coach_id = data.get('coach_id')
+
+    if not reason:
+        return jsonify({'message': 'Une raison doit être fournie pour supprimer un client'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Vérifier que le client appartient bien à ce coach
+    cursor.execute('SELECT coach_id FROM users WHERE id = ?', (client_id,))
+    client = cursor.fetchone()
+    
+    if not client or client['coach_id'] != coach_id:
+        conn.close()
+        return jsonify({'message': 'Client non trouvé ou ne vous appartient pas'}), 404
+
+    # Enregistrer la raison avant suppression (vous pourriez créer une table pour ça)
+    cursor.execute('''
+        INSERT INTO client_removals (client_id, coach_id, reason, date)
+        VALUES (?, ?, ?, datetime('now'))
+    ''', (client_id, coach_id, reason))
+    
+    # Supprimer le client (ou simplement le désassigner selon votre besoin)
+    cursor.execute('UPDATE users SET coach_id = NULL WHERE id = ?', (client_id,))
+    
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Client supprimé avec succès'}), 200
 
 # Route pour envoyer un message
 @app.route('/messages', methods=['POST'])
@@ -145,6 +281,107 @@ def send_message():
     conn.close()
 
     return jsonify({'message': 'Message sent successfully'}), 201
+
+# Route pour obtenir le rôle d'un utilisateur
+@app.route('/user/<int:user_id>/role', methods=['GET'])
+def get_user_role(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT role FROM users WHERE id = ?', (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+
+    if user:
+        return jsonify({'role': user['role']}), 200
+    else:
+        return jsonify({'message': 'User not found'}), 404
+
+# Route pour obtenir les coachs disponibles
+@app.route('/coaches', methods=['GET'])
+def get_coaches():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, name FROM users WHERE role = "coach"')
+    coaches = cursor.fetchall()
+    conn.close()
+
+    coach_list = [{'id': coach['id'], 'name': coach['name']} for coach in coaches]
+    return jsonify(coach_list), 200
+
+
+# Route pour vérifier les utilisateurs en ligne
+@app.route('/users/online', methods=['GET'])
+def get_online_users():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    # Solution temporaire - à remplacer par une vraie logique de présence
+    cursor.execute('SELECT id, name FROM users LIMIT 10')  # Exemple basique
+    online_users = cursor.fetchall()
+    conn.close()
+    
+    return jsonify([dict(user) for user in online_users]), 200
+
+@app.route('/user/<int:user_id>/coach', methods=['GET'])
+def get_user_coach(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT coach_id FROM users WHERE id = ?', (user_id,))
+    result = cursor.fetchone()
+    conn.close()
+    
+    if result and result['coach_id']:
+        return jsonify({'coach_id': result['coach_id']}), 200
+    else:
+        return jsonify({'message': 'No coach assigned'}), 404
+
+# Route pour marquer les messages comme lus
+@app.route('/messages/mark-read', methods=['POST'])
+def mark_messages_as_read():
+    data = request.get_json()
+    user_id = data['user_id']
+    sender_id = data['sender_id']
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE messages SET is_read = 1 
+        WHERE receiver_id = ? AND sender_id = ? AND is_read = 0
+    ''', (user_id, sender_id))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'Messages marqués comme lus'}), 200
+
+# Route pour uploader des fichiers
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({'error': 'Aucun fichier envoyé'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'Nom de fichier vide'}), 400
+    
+    # Sauvegarder le fichier (à adapter selon votre configuration)
+    filename = secure_filename(file.filename)
+    filepath = os.path.join('uploads', filename)
+    file.save(filepath)
+    
+    # Enregistrer en base de données
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO uploaded_files (filename, filepath, uploader_id, upload_date)
+        VALUES (?, ?, ?, datetime('now'))
+    ''', (filename, filepath, request.form.get('user_id')))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        'message': 'Fichier uploadé avec succès',
+        'filepath': filepath,
+        'filename': filename
+    }), 200
 
 # Route pour récupérer les messages entre deux utilisateurs
 @app.route('/messages/<int:sender_id>/<int:receiver_id>', methods=['GET'])
