@@ -1,15 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Image,
-  StyleSheet,
-  View,
-  TouchableOpacity,
-  Alert,
-  ScrollView,
-  FlatList,
-  Text,
-  ActivityIndicator,
-} from 'react-native';
+import {Image, StyleSheet, View, TouchableOpacity, Alert, ScrollView, FlatList, Text, ActivityIndicator,} from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +12,7 @@ type RootStackParamList = {
   Home: undefined;
   settings: undefined;
   login: undefined;
+  admin: undefined;
 };
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
@@ -67,8 +58,8 @@ export default function HomeScreen() {
         navigation.navigate('login');
       } else {
         fetchUserInfo();
-        fetchSubscriptions();
-        fetchUserSubscription();
+        // fetchSubscriptions();
+        // fetchUserSubscription();
       }
     };
 
@@ -225,6 +216,13 @@ export default function HomeScreen() {
           <Ionicons name="settings" size={20} color="#fff" />
           <ThemedText style={styles.actionButtonText}>Paramètres</ThemedText>
         </TouchableOpacity>
+
+        {userInfo.role === 'admin' && (
+          <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('admin')}>
+            <Ionicons name="shield-checkmark" size={20} color="#fff" />
+            <ThemedText style={styles.actionButtonText}>Admin</ThemedText>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity style={[styles.actionButton, styles.logoutButton]} onPress={handleLogout}>
           <Ionicons name="log-out" size={20} color="#fff" />

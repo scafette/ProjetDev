@@ -14,6 +14,8 @@ export default function SettingsScreen() {
     weight: '',
     height: '',
     sport_goal: '',
+    role: '',
+    coach_id: '',
   });
 
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -49,6 +51,8 @@ export default function SettingsScreen() {
         weight: response.data.weight ? response.data.weight.toString() : '',
         height: response.data.height ? response.data.height.toString() : '',
         sport_goal: response.data.sport_goal || '',
+        role: response.data.role || '',
+        coach_id: response.data.coach_id || '',
       });
       setProfileImage(response.data.profile_image || null);
     } catch (error) {
@@ -80,15 +84,22 @@ export default function SettingsScreen() {
   const handleSaveChanges = async () => {
     if (userId) {
       try {
-        await axios.put(`http://192.168.1.166:5000/user/${userId}`, {
+        const response = await axios.put(`http://192.168.1.166:5000/user/${userId}`, {
           username: userInfo.username,
           name: userInfo.name,
           age: parseInt(userInfo.age, 10),
           weight: parseFloat(userInfo.weight),
           height: parseFloat(userInfo.height),
           sport_goal: userInfo.sport_goal,
+          role: userInfo.role,
+          coach_id: userInfo.coach_id,
         });
-        Alert.alert('Succès', 'Informations mises à jour avec succès !');
+
+        if (response.status === 200) {
+          Alert.alert('Succès', 'Informations mises à jour avec succès !');
+        } else {
+          Alert.alert('Erreur', 'Une erreur s\'est produite lors de la mise à jour des informations.');
+        }
       } catch (error) {
         console.error(error);
         Alert.alert('Erreur', 'Une erreur s\'est produite lors de la mise à jour des informations.');
@@ -187,6 +198,19 @@ export default function SettingsScreen() {
           value={userInfo.sport_goal}
           onChangeText={(text) => setUserInfo({ ...userInfo, sport_goal: text })}
         />
+        <TextInput
+          style={styles.input}
+          placeholder="Statut"
+          value={userInfo.role}
+          onChangeText={(text) => setUserInfo({ ...userInfo, role: text })}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="COACH ID"
+          value={userInfo.coach_id}
+          onChangeText={(text) => setUserInfo({ ...userInfo, coach_id: text })}
+        />
+
         <TouchableOpacity style={styles.saveButton} onPress={handleSaveChanges}>
           <ThemedText style={styles.saveButtonText}>Enregistrer les modifications</ThemedText>
         </TouchableOpacity>
@@ -216,11 +240,10 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </ThemedView>
 
-    {/* Section Footer */}
-          <ThemedView style={styles.footer}>
-            <ThemedText style={styles.footerText}>@Créé par Elmir Elias, Giovanni Mascaro, Ilyes Zekri</ThemedText>
-          </ThemedView>
-
+      {/* Section Footer */}
+      <ThemedView style={styles.footer}>
+        <ThemedText style={styles.footerText}>@Créé par Elmir Elias, Giovanni Mascaro, Ilyes Zekri</ThemedText>
+      </ThemedView>
     </ScrollView>
   );
 }

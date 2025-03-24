@@ -1,14 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, ScrollView } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 
 const MaSalleDeSport = () => {
   const salle = {
-    nom: 'Fit & Go',
-    adresse: '123 Rue de la Forme, 75001 Paris, France',
+    nom: 'Basic-Fit',
+    adresse: 'Av. de la Division Leclerc 380, 92290 Châtenay-Malabry',
     photo: require('../assets/images/masalle.jpg'),
     coordonnees: {
-      latitude: 48.8566,
-      longitude: 2.3522,
+      latitude: 48.7665, // Exemple de latitude
+      longitude: 2.2896, // Exemple de longitude
     },
     horaires: [
       { jour: 'Lundi', heures: '06:00 - 22:00' },
@@ -26,7 +27,24 @@ const MaSalleDeSport = () => {
       <View style={styles.header}>
         <Image source={salle.photo} style={styles.photo} />
         <View style={styles.mapContainer}>
-          {/* Vous pouvez ajouter une carte ici si nécessaire */}
+          <MapView
+            style={styles.map}
+            initialRegion={{
+              latitude: salle.coordonnees.latitude,
+              longitude: salle.coordonnees.longitude,
+              latitudeDelta: 0.01, // Niveau de zoom
+              longitudeDelta: 0.01, // Niveau de zoom
+            }}
+          >
+            <Marker
+              coordinate={{
+                latitude: salle.coordonnees.latitude,
+                longitude: salle.coordonnees.longitude,
+              }}
+              title={salle.nom}
+              description={salle.adresse}
+            />
+          </MapView>
         </View>
       </View>
       <Text style={styles.nomSalle}>{salle.nom}</Text>
@@ -63,9 +81,12 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     flex: 1,
-    height: 100,
+    height: 180, // Hauteur de la carte
     borderRadius: 10,
     overflow: 'hidden',
+  },
+  map: {
+    flex: 1,
   },
   nomSalle: {
     fontSize: 24,

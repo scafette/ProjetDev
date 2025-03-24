@@ -24,6 +24,7 @@ type RootStackParamList = {
   ZoneCrossFitHIIT: undefined;
   ZoneRécupération: undefined;
   admin: undefined;
+  Messagerie: undefined;
 };
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
@@ -227,10 +228,10 @@ export default function HomeScreen() {
           </TouchableOpacity>
 
           {/* Carte Entraînement */}
-          <TouchableOpacity style={styles.nutritionCard} onPress={() => navigation.navigate('admin')}>
-            <Ionicons name="barbell-outline" size={24} color="#00b80e" />
+            <TouchableOpacity style={styles.nutritionCard} onPress={() => navigation.navigate('Messagerie')}>
+            <Ionicons name="chatbubble-outline" size={24} color="#00b80e" />
             <ThemedText style={styles.trainingCardText}>
-              <ThemedText>ENTRAINEMENT</ThemedText>
+              <ThemedText>Messagerie</ThemedText>
             </ThemedText>
             </TouchableOpacity>
         </ScrollView>
@@ -412,7 +413,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    width: 170,
+    width: 195,
     height: 120,
   },
   nutritionCardText: {
