@@ -5,7 +5,7 @@ import { ThemedView } from '@/components/ThemedView';
 import * as ImagePicker from 'expo-image-picker'; // Pour la sélection d'image
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { IP } from '@env';
+const IP="172.20.10.6";
 
 export default function SettingsScreen() {
   const [userInfo, setUserInfo] = useState({

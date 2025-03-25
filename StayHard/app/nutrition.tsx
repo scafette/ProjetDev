@@ -7,7 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons'; // Assurez-vous d'avoir installé @expo/vector-icons
 import axios from 'axios';
-import { IP } from '@env';
+const IP="172.20.10.6";
 
 type RootStackParamList = {
   Home: undefined;

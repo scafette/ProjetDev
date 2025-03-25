@@ -8,7 +8,7 @@ import { useNavigation } from '@react-navigation/native'; // Importez useNavigat
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from 'react';
 import { NavigationProp, RouteProp } from '@react-navigation/native';
-import { IP } from '@env';
+const IP="172.20.10.6";
 
 type RootStackParamList = {
   Home: undefined;

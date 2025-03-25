@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
-import { IP } from '@env';
+const IP="172.20.10.6";
 
 interface User {
   id: number;

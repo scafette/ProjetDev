@@ -18,7 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { io, Socket } from 'socket.io-client';
-import { IP } from '@env';
+const IP="172.20.10.6";
 
 // Types
 type Message = {

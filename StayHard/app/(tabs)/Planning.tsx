@@ -19,7 +19,7 @@ import RNPickerSelect from 'react-native-picker-select';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DatePicker from 'react-datepicker';
-import { IP } from '@env';
+const IP="172.20.10.6";
 
 
 // Types de sports disponibles

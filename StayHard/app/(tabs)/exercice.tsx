@@ -4,7 +4,7 @@ import { Picker } from "@react-native-picker/picker"; // Importez Picker depuis 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import axios from "axios";
-import { IP } from '@env';
+const IP="172.20.10.6";
 
 interface Exercise {
   id: number;

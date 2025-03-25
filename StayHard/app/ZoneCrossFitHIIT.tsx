@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, FlatList, Image, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import axios from 'axios';
-import { IP } from '@env';
+const IP="172.20.10.6";
 
 const CrossFitHIIT = () => {
   const [searchQuery, setSearchQuery] = useState('');

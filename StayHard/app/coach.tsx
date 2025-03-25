@@ -3,7 +3,7 @@ import { View, Text, FlatList, ActivityIndicator, Alert, StyleSheet, TouchableOp
 import { Picker } from '@react-native-picker/picker';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import axios from 'axios';
-import { IP } from '@env';
+const IP="172.20.10.6";
 
 // Définir le type des paramètres de route
 type CoachRouteParams = {

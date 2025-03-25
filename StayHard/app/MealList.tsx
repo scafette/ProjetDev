@@ -6,7 +6,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import axios from 'axios';
-import { IP } from '@env';
+const IP="172.20.10.6";
 
 type RootStackParamList = {
     Home: undefined;
