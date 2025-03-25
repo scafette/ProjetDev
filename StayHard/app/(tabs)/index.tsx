@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons'; // Assurez-vous d'avoir installé
 import { useNavigation } from '@react-navigation/native'; // Importez useNavigation
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as Notifications from 'expo-notifications';
+import { IP } from '@env';
 
 type RootStackParamList = {
   Home: undefined;

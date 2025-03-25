@@ -8,6 +8,7 @@ import { useNavigation } from '@react-navigation/native'; // Importez useNavigat
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { IP } from '@env'; 
 
 type RootStackParamList = {
   Home: undefined; // Utilise le chemin complet
@@ -35,7 +36,7 @@ const handleLogin = async () => {
   }
 
   try {
-    const response = await axios.post('http://192.168.1.166:5000/login', {
+    const response = await axios.post(`http://${IP}:5000/login`, {
       username,
       password,
     });

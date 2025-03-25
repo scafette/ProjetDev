@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
+import { IP } from '@env';
 
 interface User {
   id: number;
@@ -39,8 +40,8 @@ const AdminPage = () => {
   // Fetch users and workouts
   const fetchData = async () => {
     try {
-      const usersResponse = await axios.get('http://192.168.1.166:5000/admin/users');
-      const workoutsResponse = await axios.get('http://192.168.1.166:5000/admin/workouts');
+      const usersResponse = await axios.get(`http://${IP}:5000/admin/users`);
+      const workoutsResponse = await axios.get(`http://${IP}:5000/admin/workouts`);
       setUsers(usersResponse.data);
       setWorkouts(workoutsResponse.data);
       console.log('Users:', usersResponse.data);
@@ -62,7 +63,7 @@ const AdminPage = () => {
     if (selectedUserId === '-1') return; // Check if a user is selected
 
     try {
-      await axios.put(`http://192.168.1.166:5000/admin/change-role/${selectedUserId}`, { role: selectedRole });
+      await axios.put(`http://${IP}:5000/admin/change-role/${selectedUserId}`, { role: selectedRole });
       Alert.alert('Succès', 'Rôle mis à jour avec succès.');
       fetchData(); // Reload data
     } catch (error) {
@@ -76,7 +77,7 @@ const AdminPage = () => {
     if (selectedUserId === '-1' || selectedCoachId === '-1') return; // Check if user and coach are selected
 
     try {
-      await axios.put(`http://192.168.1.166:5000/admin/assign-coach/${selectedUserId}`, { coach_id: selectedCoachId });
+      await axios.put(`http://${IP}:5000/admin/assign-coach/${selectedUserId}`, { coach_id: selectedCoachId });
       Alert.alert('Succès', 'Coach assigné avec succès.');
       fetchData(); // Reload data
     } catch (error) {

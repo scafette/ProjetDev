@@ -4,6 +4,7 @@ import { Picker } from "@react-native-picker/picker"; // Importez Picker depuis 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import axios from "axios";
+import { IP } from '@env';
 
 interface Exercise {
   id: number;
@@ -21,7 +22,7 @@ const ExercicePage = () => {
 
   const fetchExercises = async () => {
     try {
-      const response = await axios.get("http://192.168.1.166:5000/exercices");
+      const response = await axios.get(`http://${IP}:5000/exercices`);
       setExercises(response.data);
     } catch (error) {
       Alert.alert("Erreur", "Impossible de récupérer les exercices.");

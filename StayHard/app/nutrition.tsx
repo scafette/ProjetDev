@@ -7,6 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons'; // Assurez-vous d'avoir installé @expo/vector-icons
 import axios from 'axios';
+import { IP } from '@env';
 
 type RootStackParamList = {
   Home: undefined;
@@ -44,7 +45,7 @@ const NutritionPage = () => {
   useEffect(() => {
     const fetchMeals = async () => {
       try {
-        const response = await axios.get('http://192.168.1.166:5000/nutrition');
+        const response = await axios.get(`http://${IP}:5000/nutrition`);
         setMeals(response.data);
         console.log('Plats:', response.data);
       } catch (error) {

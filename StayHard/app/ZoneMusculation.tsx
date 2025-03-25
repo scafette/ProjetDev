@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, FlatList, Image, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import axios from 'axios';
+import { IP } from '@env';
 
 const Musculation = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -10,7 +11,7 @@ const Musculation = () => {
   // Fonction pour récupérer les exercices de la catégorie "Musculation"
   const fetchMusculationExercises = async () => {
     try {
-      const response = await axios.get('http://192.168.1.166:5000/exercices');
+      const response = await axios.get(`http://${IP}:5000/exercices`);
       const musculationExercises = response.data.filter(exercise => exercise.category === 'Musculation');
       setExercises(musculationExercises);
     } catch (error) {

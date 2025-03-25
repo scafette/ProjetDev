@@ -3,6 +3,7 @@ import { View, Text, FlatList, ActivityIndicator, Alert, StyleSheet, TouchableOp
 import { Picker } from '@react-native-picker/picker';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import axios from 'axios';
+import { IP } from '@env';
 
 // Définir le type des paramètres de route
 type CoachRouteParams = {
@@ -50,8 +51,8 @@ const CoachPage = () => {
     setLoading(true);
     try {
       const [clientsResponse, workoutsResponse] = await Promise.all([
-        axios.get(`http://192.168.1.166:5000/coach/clients/${coachId}`),
-        axios.get(`http://192.168.1.166:5000/workouts/${coachId}`)
+        axios.get(`http://${IP}:5000/coach/clients/${coachId}`),
+        axios.get(`http://${IP}:5000/workouts/${coachId}`)
       ]);
       
       setClients(clientsResponse.data);
@@ -75,7 +76,7 @@ const CoachPage = () => {
     }
 
     try {
-      await axios.delete(`http://192.168.1.166:5000/coach/remove-client/${selectedClientId}`, {
+      await axios.delete(`http://${IP}:5000/coach/remove-client/${selectedClientId}`, {
         data: { reason, coach_id: coachId }
       });
       
@@ -93,7 +94,7 @@ const CoachPage = () => {
     if (selectedWorkoutId === '-1') return;
 
     try {
-      await axios.put(`http://192.168.1.166:5000/workouts/${selectedWorkoutId}`, {
+      await axios.put(`http://${IP}:5000/workouts/${selectedWorkoutId}`, {
         status: action === 'approve' ? 'approved' : 'rejected'
       });
       

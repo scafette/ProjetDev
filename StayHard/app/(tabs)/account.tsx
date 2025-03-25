@@ -7,6 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { IP } from '@env';
 
 type RootStackParamList = {
   Home: undefined;
@@ -71,7 +72,7 @@ export default function HomeScreen() {
     if (userId) {
       setIsRefreshing(true);
       try {
-        const response = await axios.get(`http://192.168.1.166:5000/user/${userId}`);
+        const response = await axios.get(`http://${IP}:5000/user/${userId}`);
         console.log('Informations utilisateur:', response.data);
         setUserInfo(response.data);
       } catch (error) {
@@ -85,7 +86,7 @@ export default function HomeScreen() {
 
   // const fetchSubscriptions = async () => {
   //   try {
-  //     const response = await axios.get('http://192.168.1.166:5000/subscriptions');
+  //     const response = await axios.get('http://${IP}:5000/subscriptions');
   //     setSubscriptions(response.data);
   //   } catch (error) {
   //     console.error(error);
@@ -96,7 +97,7 @@ export default function HomeScreen() {
   // const fetchUserSubscription = async () => {
   //   if (userId) {
   //     try {
-  //       const response = await axios.get(`http://192.168.1.166:5000/user/${userId}/subscription`);
+  //       const response = await axios.get(`http://${IP}:5000/user/${userId}/subscription`);
   //       setCurrentSubscription(response.data.subscription_name);
   //     } catch (error) {
   //       console.error(error);
@@ -116,7 +117,7 @@ export default function HomeScreen() {
       // Résilier l'abonnement (revenir à "Simple")
       setCurrentSubscription('Simple');
       try {
-        await axios.post(`http://192.168.1.166:5000/user/${userId}/subscription`, {
+        await axios.post(`http://${IP}:5000/user/${userId}/subscription`, {
           subscription_name: 'Simple',
         });
         Alert.alert('Succès', 'Abonnement résilié avec succès.');
@@ -128,7 +129,7 @@ export default function HomeScreen() {
       // Choisir un nouvel abonnement
       setCurrentSubscription(subscriptionName);
       try {
-        await axios.post(`http://192.168.1.166:5000/user/${userId}/subscription`, {
+        await axios.post(`http://${IP}:5000/user/${userId}/subscription`, {
           subscription_name: subscriptionName,
         });
         Alert.alert('Succès', 'Abonnement mis à jour avec succès.');

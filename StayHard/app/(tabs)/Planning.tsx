@@ -19,6 +19,8 @@ import RNPickerSelect from 'react-native-picker-select';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DatePicker from 'react-datepicker';
+import { IP } from '@env';
+
 
 // Types de sports disponibles
 const sportTypes = [
@@ -119,7 +121,7 @@ export default function PlanningScreen() {
     if (!userId) return;
 
     try {
-      const response = await axios.get(`http://192.168.1.166:5000/workouts/${userId}`);
+      const response = await axios.get(`http://${IP}:5000/workouts/${userId}`);
       if (response.status === 200) {
         console.log('Séances récupérées:', response.data); // Log pour vérifier les données
         setSessions(response.data);
@@ -152,7 +154,7 @@ export default function PlanningScreen() {
     };
 
     try {
-      const response = await axios.post('http://192.168.1.166:5000/workout', newSession);
+      const response = await axios.post('http://${IP}:5000/workout', newSession);
       if (response.status === 201) {
         Alert.alert('Succès', 'Séance ajoutée avec succès !');
         setSessions([...sessions, response.data]);
@@ -179,7 +181,7 @@ export default function PlanningScreen() {
     };
 
     try {
-      const response = await axios.put(`http://192.168.1.166:5000/workout/${selectedSession.id}`, updatedSession);
+      const response = await axios.put(`http://${IP}:5000/workout/${selectedSession.id}`, updatedSession);
       if (response.status === 200) {
         Alert.alert('Succès', 'Séance modifiée avec succès !');
         const updatedSessions = sessions.map((session) =>
@@ -198,7 +200,7 @@ export default function PlanningScreen() {
   // Supprimer une séance
   const handleDeleteSession = async (id: string) => {
     try {
-      const response = await axios.delete(`http://192.168.1.166:5000/workout/${id}`);
+      const response = await axios.delete(`http://${IP}:5000/workout/${id}`);
       if (response.status === 200) {
         Alert.alert('Succès', 'Séance supprimée avec succès !');
         setSessions(sessions.filter((session) => session.id !== id));

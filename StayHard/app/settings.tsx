@@ -5,6 +5,7 @@ import { ThemedView } from '@/components/ThemedView';
 import * as ImagePicker from 'expo-image-picker'; // Pour la sélection d'image
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { IP } from '@env';
 
 export default function SettingsScreen() {
   const [userInfo, setUserInfo] = useState({
@@ -43,7 +44,7 @@ export default function SettingsScreen() {
 
   const fetchUserInfo = async () => {
     try {
-      const response = await axios.get(`http://192.168.1.166:5000/user/${userId}`);
+      const response = await axios.get(`http://${IP}:5000/user/${userId}`);
       setUserInfo({
         username: response.data.username || '',
         name: response.data.name || '',
@@ -84,7 +85,7 @@ export default function SettingsScreen() {
   const handleSaveChanges = async () => {
     if (userId) {
       try {
-        const response = await axios.put(`http://192.168.1.166:5000/user/${userId}`, {
+        const response = await axios.put(`http://${IP}:5000/user/${userId}`, {
           username: userInfo.username,
           name: userInfo.name,
           age: parseInt(userInfo.age, 10),
@@ -119,7 +120,7 @@ export default function SettingsScreen() {
     }
 
     try {
-      const response = await axios.put(`http://192.168.1.166:5000/user/${userId}/change-password`, {
+      const response = await axios.put(`http://${IP}:5000/user/${userId}/change-password`, {
         old_password: oldPassword,
         new_password: newPassword,
       });

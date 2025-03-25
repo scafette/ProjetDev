@@ -8,6 +8,7 @@ import { useNavigation } from '@react-navigation/native'; // Importez useNavigat
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from 'react';
 import { NavigationProp, RouteProp } from '@react-navigation/native';
+import { IP } from '@env';
 
 type RootStackParamList = {
   Home: undefined;
@@ -37,7 +38,7 @@ export default function HomeScreen() {
       }
   
       try {
-        const response = await axios.post('http://192.168.1.166:5000/register', {
+        const response = await axios.post(`http://${IP}:5000/register`, {
           username,
           password,
           name,

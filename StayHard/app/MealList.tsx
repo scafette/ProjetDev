@@ -6,6 +6,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import axios from 'axios';
+import { IP } from '@env';
 
 type RootStackParamList = {
     Home: undefined;
@@ -42,7 +43,7 @@ const navigation = useNavigation<HomeScreenNavigationProp>();
   useEffect(() => {
     const fetchMeals = async () => {
       try {
-        const response = await axios.get('http://192.168.1.166:5000/nutrition');
+        const response = await axios.get(`http://${IP}:5000/nutrition`);
         const filteredMeals = response.data.filter((meal: Meal) => meal.goal_category === category);
         setMeals(filteredMeals);
       } catch (error) {

@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { io, Socket } from 'socket.io-client';
+import { IP } from '@env';
 
 // Types
 type Message = {
@@ -70,11 +71,11 @@ function ClientList({ navigation }: ClientListProps) {
         const userIdNum = parseInt(id, 10);
         setUserId(userIdNum);
 
-        const userRes = await axios.get(`http://192.168.1.166:5000/user/${id}`);
+        const userRes = await axios.get(`http://${IP}:5000/user/${id}`);
         const userData = userRes.data;
 
         if (userData.role === 'coach') {
-          const clientsRes = await axios.get(`http://192.168.1.166:5000/coach/clients/${id}`);
+          const clientsRes = await axios.get(`http://${IP}:5000/coach/clients/${id}`);
           setClients(clientsRes.data);
         }
 
@@ -150,7 +151,7 @@ function MessagerieScreen({ route, navigation }: MessagerieProps) {
         setUserId(userIdNum);
 
         const res = await axios.get(
-          `http://192.168.1.166:5000/messages/${userIdNum}/${clientId}`
+          `http://${IP}:5000/messages/${userIdNum}/${clientId}`
         );
         setMessages(Array.isArray(res.data) ? res.data : []);
 
@@ -164,7 +165,7 @@ function MessagerieScreen({ route, navigation }: MessagerieProps) {
     loadUserData();
 
     const setupSocket = () => {
-      socket.current = io('ws://192.168.1.166:5000', {
+      socket.current = io('ws://${IP}:5000', {
         transports: ['websocket'],
       });
 
@@ -237,7 +238,7 @@ function MessagerieScreen({ route, navigation }: MessagerieProps) {
         formData.append('user_id', userId.toString());
 
         const uploadRes = await axios.post(
-          'http://192.168.1.166:5000/upload',
+          `http://${IP}:5000/upload`,
           formData,
           { headers: { 'Content-Type': 'multipart/form-data' } }
         );
@@ -261,7 +262,7 @@ function MessagerieScreen({ route, navigation }: MessagerieProps) {
       if (socket.current?.connected) {
         socket.current.emit('sendMessage', tempMessage);
       } else {
-        await axios.post('http://192.168.1.166:5000/messages', tempMessage);
+        await axios.post(`http://${IP}:5000/messages`, tempMessage);
       }
 
     } catch (error) {
@@ -284,7 +285,7 @@ function MessagerieScreen({ route, navigation }: MessagerieProps) {
     if (!selectedMessage) return;
     
     try {
-      await axios.delete(`http://192.168.1.166:5000/messages/${selectedMessage.id}`);
+      await axios.delete(`http://${IP}:5000/messages/${selectedMessage.id}`);
       setMessages(prev => prev.filter(msg => msg.id !== selectedMessage.id));
       setModalVisible(false);
       
@@ -302,7 +303,7 @@ function MessagerieScreen({ route, navigation }: MessagerieProps) {
     
     try {
       const response = await axios.put(
-        `http://192.168.1.166:5000/messages/${selectedMessage.id}`,
+        `http://${IP}:5000/messages/${selectedMessage.id}`,
         { message: editedMessage }
       );
 
@@ -338,7 +339,7 @@ function MessagerieScreen({ route, navigation }: MessagerieProps) {
         ]}>
           {item.image_url && (
             <Image
-              source={{ uri: `http://192.168.1.166:5000/${item.image_url}` }}
+              source={{ uri: `http://${IP}:5000/${item.image_url}` }}
               style={styles.messageImage}
               resizeMode="cover"
             />
