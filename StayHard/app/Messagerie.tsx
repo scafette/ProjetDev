@@ -18,7 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { io, Socket } from 'socket.io-client';
-const IP="172.20.10.6";
+const IP = "172.20.10.6";
 
 // Types
 type Message = {
@@ -61,6 +61,7 @@ function ClientList({ navigation }: ClientListProps) {
   const [clients, setClients] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [userId, setUserId] = useState<number | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -73,10 +74,30 @@ function ClientList({ navigation }: ClientListProps) {
 
         const userRes = await axios.get(`http://${IP}:5000/user/${id}`);
         const userData = userRes.data;
+        setUserRole(userData.role);
 
-        if (userData.role === 'coach') {
+        if (userData.role === 'admin') {
+          // Admin peut voir tout le monde
+          const allUsersRes = await axios.get(`http://${IP}:5000/admin/users`);
+          setClients(allUsersRes.data.filter((user: User) => user.id !== userIdNum));
+        } else if (userData.role === 'coach') {
+          // Coach peut voir ses clients
           const clientsRes = await axios.get(`http://${IP}:5000/coach/clients/${id}`);
           setClients(clientsRes.data);
+        } else if (userData.role === 'user') {
+          // User peut voir son coach et l'admin
+          const coachRes = await axios.get(`http://${IP}:5000/user/coach/${id}`);
+          const adminRes = await axios.get(`http://${IP}:5000/users/admin`);
+          
+          const contacts = [];
+          if (coachRes.data) {
+            contacts.push(coachRes.data);
+          }
+          if (adminRes.data) {
+            contacts.push(adminRes.data);
+          }
+          
+          setClients(contacts);
         }
 
       } catch (error) {
@@ -112,14 +133,20 @@ function ClientList({ navigation }: ClientListProps) {
 
   return (
     <View style={styles.clientListContainer}>
-      <Text style={styles.title}>Mes Clients</Text>
+      <Text style={styles.title}>
+        {userRole === 'admin' ? 'Tous les utilisateurs' : 
+         userRole === 'coach' ? 'Mes Clients' : 'Mes Contacts'}
+      </Text>
       <FlatList
         data={clients}
         renderItem={renderClient}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContainer}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>Aucun client assigné</Text>
+          <Text style={styles.emptyText}>
+            {userRole === 'admin' ? 'Aucun utilisateur' : 
+             userRole === 'coach' ? 'Aucun client assigné' : 'Aucun contact disponible'}
+          </Text>
         }
       />
     </View>
@@ -132,6 +159,9 @@ function MessagerieScreen({ route, navigation }: MessagerieProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState<string>('');
   const [userId, setUserId] = useState<number | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [coachId, setCoachId] = useState<number | null>(null);
+  const [adminId, setAdminId] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [image, setImage] = useState<string | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
@@ -150,6 +180,22 @@ function MessagerieScreen({ route, navigation }: MessagerieProps) {
         const userIdNum = parseInt(id, 10);
         setUserId(userIdNum);
 
+        const userRes = await axios.get(`http://${IP}:5000/user/${id}`);
+        const userData = userRes.data;
+        setUserRole(userData.role);
+
+        if (userData.role === 'user') {
+          const coachRes = await axios.get(`http://${IP}:5000/user/coach/${id}`);
+          if (coachRes.data) {
+            setCoachId(coachRes.data.id);
+          }
+          
+          const adminRes = await axios.get(`http://${IP}:5000/users/admin`);
+          if (adminRes.data) {
+            setAdminId(adminRes.data.id);
+          }
+        }
+
         const res = await axios.get(
           `http://${IP}:5000/messages/${userIdNum}/${clientId}`
         );
@@ -165,7 +211,7 @@ function MessagerieScreen({ route, navigation }: MessagerieProps) {
     loadUserData();
 
     const setupSocket = () => {
-      socket.current = io('ws://${IP}:5000', {
+      socket.current = io(`ws://${IP}:5000`, {
         transports: ['websocket'],
       });
 
@@ -222,7 +268,30 @@ function MessagerieScreen({ route, navigation }: MessagerieProps) {
 
   const sendMessage = async () => {
     if (!newMessage.trim() && !image) return;
-    if (!userId) return;
+    if (!userId || !userRole) return;
+
+    // Vérification des permissions
+    if (userRole === 'user') {
+      // Un user ne peut envoyer des messages qu'à son coach ou à l'admin
+      const allowedReceivers = [];
+      if (coachId) allowedReceivers.push(coachId);
+      if (adminId) allowedReceivers.push(adminId);
+      
+      if (!allowedReceivers.includes(clientId)) {
+        Alert.alert('Erreur', 'Vous ne pouvez pas envoyer de message à cette personne');
+        return;
+      }
+    } else if (userRole === 'coach') {
+      // Un coach ne peut envoyer des messages qu'à ses clients
+      const clientsRes = await axios.get(`http://${IP}:5000/coach/clients/${userId}`);
+      const clientIds = clientsRes.data.map((client: User) => client.id);
+      
+      if (!clientIds.includes(clientId)) {
+        Alert.alert('Erreur', 'Vous ne pouvez pas envoyer de message à cette personne');
+        return;
+      }
+    }
+    // Pour admin, pas de restriction
 
     let tempMessage: Message | null = null;
 
