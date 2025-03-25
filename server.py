@@ -200,6 +200,39 @@ def init_db():
 
 # Routes Flask
 
+# Route pour obtenir les informations du coach d'un utilisateur
+@app.route('/user/coach/<int:user_id>', methods=['GET'])
+def get_user_coach_info(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 1. Récupérer l'ID du coach
+        cursor.execute('SELECT coach_id FROM users WHERE id = ?', (user_id,))
+        result = cursor.fetchone()
+        
+        if not result or not result[0]:
+            return jsonify({'message': 'No coach assigned to this user'}), 404
+
+        coach_id = result[0]
+        
+        # 2. Récupérer les infos du coach
+        cursor.execute('SELECT id, name, username FROM users WHERE id = ?', (coach_id,))
+        coach = cursor.fetchone()
+        
+        if coach:
+            return jsonify({
+                'id': coach[0],
+                'name': coach[1],
+                'username': coach[2]
+            }), 200
+        return jsonify({'message': 'Coach not found'}), 404
+
+    except Exception as e:
+        return jsonify({'message': f'Server error: {str(e)}'}), 500
+    finally:
+        conn.close()
+
 # Route pour obtenir les clients assignés à un coach
 @app.route('/coach/clients/<int:coach_id>', methods=['GET'])
 def get_coach_clients(coach_id):
@@ -321,7 +354,9 @@ def get_online_users():
     
     return jsonify([dict(user) for user in online_users]), 200
 
-@app.route('/user/<int:user_id>/coach', methods=['GET'])
+
+
+@app.route('/user/coach/<int:user_id>', methods=['GET'])
 def get_user_coach(user_id):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -502,6 +537,35 @@ def get_all_workouts():
         })
 
     return jsonify(workout_list), 200
+
+# Route pour obtenir l'utilisateur admin
+@app.route('/users/admin', methods=['GET'])
+def get_admin_user():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Récupérer le premier admin trouvé
+        cursor.execute('''
+            SELECT id, name, username 
+            FROM users 
+            WHERE role = 'admin' 
+            LIMIT 1
+        ''')
+        admin = cursor.fetchone()
+        
+        if admin:
+            return jsonify({
+                'id': admin[0],
+                'name': admin[1],
+                'username': admin[2]
+            }), 200
+        return jsonify({'message': 'No admin user found'}), 404
+
+    except Exception as e:
+        return jsonify({'message': f'Server error: {str(e)}'}), 500
+    finally:
+        conn.close()
 
 @app.route('/admin/change-role/<int:user_id>', methods=['PUT'])
 def change_user_role(user_id):
@@ -831,7 +895,8 @@ def get_exercises():
             'id': exercise['id'],
             'name': exercise['name'],
             'description': exercise['description'],
-            'category': exercise['category']
+            'category': exercise['category'],
+            'image': exercise['image']
         })
 
     return jsonify(exercise_list), 200
@@ -927,7 +992,8 @@ def get_nutrition():
             'preparation_time': entry['preparation_time'],
             'calories': entry['calories'],
             'category': entry['category'],
-            'goal_category': entry['goal_category']
+            'goal_category': entry['goal_category'],
+            'image': entry['image']
         })
 
     return jsonify(nutrition_list), 200
