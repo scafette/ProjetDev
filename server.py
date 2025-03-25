@@ -6,6 +6,7 @@ import sqlite3
 from flask_socketio import SocketIO, emit
 from werkzeug.utils import secure_filename
 import os
+import random
 
 app = Flask(__name__)
 CORS(app)
@@ -194,6 +195,15 @@ def init_db():
             FOREIGN KEY (uploader_id) REFERENCES users (id)
         )
     ''')
+    cursor.execute('''
+            CREATE TABLE IF NOT EXISTS actualites (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                description TEXT NOT NULL,
+                auteur_id INTEGER,
+                date_creation DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (auteur_id) REFERENCES users (id)
+            )
+        ''')
     
     conn.commit()
     conn.close()
@@ -1047,6 +1057,31 @@ def delete_nutrition(nutrition_id):
     conn.close()
 
     return jsonify({'message': 'Nutrition entry deleted successfully'}), 200
+# Routes pour les actualités
+@app.route('/actualites', methods=['POST'])
+def creer_actualite():
+    data = request.get_json()
+    description = data.get('description')
+    auteur_id = data.get('auteur_id')
+    
+    if not description:
+        return jsonify({'message': 'La description est requise'}), 400
+    
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO actualites (description, auteur_id)
+            VALUES (?, ?)
+        ''', (description, auteur_id))
+        conn.commit()
+        actualite_id = cursor.lastrowid
+    
+    return jsonify({
+        'message': 'Actualité créée avec succès',
+        'id': actualite_id
+    }), 201
+
+
 
 if __name__ == '__main__':
     init_db()
