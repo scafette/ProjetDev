@@ -168,42 +168,42 @@ export default function HomeScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <ThemedView style={styles.sportCard}>
               <TouchableOpacity onPress={() => navigation.navigate('ZoneCardio')}>
-                <ImageBackground source={require('../../assets/images/exercice1.jpeg')} style={styles.sportCardImage}>
+                <ImageBackground source={require('../../assets/images/Cardio.jpg')} style={styles.sportCardImage}>
                   <ThemedText type="defaultSemiBold" style={styles.sportCardTextOverlay}>Zone Cardio</ThemedText>
                 </ImageBackground>
               </TouchableOpacity>
             </ThemedView>
             <ThemedView style={styles.sportCard}>
               <TouchableOpacity onPress={() => navigation.navigate('ZoneMusculation')}>
-                <ImageBackground source={require('../../assets/images/exercice1.jpeg')} style={styles.sportCardImage}>
+                <ImageBackground source={require('../../assets/images/Musculation.png')} style={styles.sportCardImage}>
                   <ThemedText type="defaultSemiBold" style={styles.sportCardTextOverlay}>Zone Musculation</ThemedText>
                 </ImageBackground>
               </TouchableOpacity>
             </ThemedView>
             <ThemedView style={styles.sportCard}>
               <TouchableOpacity onPress={() => navigation.navigate('ZoneFunctionalTraining')}>
-                <ImageBackground source={require('../../assets/images/exercice1.jpeg')} style={styles.sportCardImage}>
+                <ImageBackground source={require('../../assets/images/Functional-Training.png')} style={styles.sportCardImage}>
                   <ThemedText type="defaultSemiBold" style={styles.sportCardTextOverlay}>Zone Functional Training</ThemedText>
                 </ImageBackground>
               </TouchableOpacity>
             </ThemedView>
             <ThemedView style={styles.sportCard}>
               <TouchableOpacity onPress={() => navigation.navigate('ZoneÉtirementetMobilité')}>
-                <ImageBackground source={require('../../assets/images/exercice1.jpeg')} style={styles.sportCardImage}>
+                <ImageBackground source={require('../../assets/images/Étirement et Mobilité.jpg')} style={styles.sportCardImage}>
                   <ThemedText type="defaultSemiBold" style={styles.sportCardTextOverlay}>Zone Étirement et Mobilité</ThemedText>
                 </ImageBackground>
               </TouchableOpacity>
             </ThemedView>
             <ThemedView style={styles.sportCard}>
               <TouchableOpacity onPress={() => navigation.navigate('ZoneCrossFitHIIT')}>
-                <ImageBackground source={require('../../assets/images/exercice1.jpeg')} style={styles.sportCardImage}>
+                <ImageBackground source={require('../../assets/images/CrossFitHIIT.jpg')} style={styles.sportCardImage}>
                   <ThemedText type="defaultSemiBold" style={styles.sportCardTextOverlay}>Zone CrossFit / HIIT</ThemedText>
                 </ImageBackground>
               </TouchableOpacity>
             </ThemedView>
             <ThemedView style={styles.sportCard}>
               <TouchableOpacity onPress={() => navigation.navigate('ZoneRécupération')}>
-                <ImageBackground source={require('../../assets/images/exercice1.jpeg')} style={styles.sportCardImage}>
+                <ImageBackground source={require('../../assets/images/Récupération.png')} style={styles.sportCardImage}>
                   <ThemedText type="defaultSemiBold" style={styles.sportCardTextOverlay}>Zone Récupération</ThemedText>
                 </ImageBackground>
               </TouchableOpacity>
