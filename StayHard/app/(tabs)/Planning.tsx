@@ -154,7 +154,7 @@ export default function PlanningScreen() {
     };
 
     try {
-      const response = await axios.post('http://${IP}:5000/workout', newSession);
+      const response = await axios.post(`http://${IP}:5000/workout`, newSession);
       if (response.status === 201) {
         Alert.alert('Succès', 'Séance ajoutée avec succès !');
         setSessions([...sessions, response.data]);
