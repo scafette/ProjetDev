@@ -145,7 +145,8 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL UNIQUE,
             description TEXT,
-            category TEXT
+            category TEXT,
+            image TEXT
         )
     ''')
     
@@ -903,7 +904,8 @@ def get_exercises():
             'id': exercise['id'],
             'name': exercise['name'],
             'description': exercise['description'],
-            'category': exercise['category']
+            'category': exercise['category'],
+            'image': exercise['image']
         })
 
     return jsonify(exercise_list), 200
@@ -999,7 +1001,8 @@ def get_nutrition():
             'preparation_time': entry['preparation_time'],
             'calories': entry['calories'],
             'category': entry['category'],
-            'goal_category': entry['goal_category']
+            'goal_category': entry['goal_category'],
+            'image': entry['image']
         })
 
     return jsonify(nutrition_list), 200
