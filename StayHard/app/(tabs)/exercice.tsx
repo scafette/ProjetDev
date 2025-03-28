@@ -1,10 +1,31 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, ActivityIndicator, Alert, TextInput, StyleSheet, ScrollView, Image } from "react-native";
-import { Picker } from "@react-native-picker/picker"; // Importez Picker depuis @react-native-picker/picker
+import React, { useEffect, useState } from 'react';
+import { 
+  View, 
+  Text, 
+  ScrollView, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Image, 
+  ActivityIndicator, 
+  Alert,
+  TextInput,
+  FlatList
+} from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import axios from "axios";
-const IP="172.20.10.6";
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import axios from 'axios';
+
+const IP = "172.20.10.6";
+
+type RootStackParamList = {
+  ExerciceList: undefined;
+  ExerciceDetails: { exercise: Exercise };
+  exoDetails: { exercise: Exercise };
+};
+
+type ExerciceNavigationProp = StackNavigationProp<RootStackParamList, 'ExerciceList'>;
 
 interface Exercise {
   id: number;
@@ -15,15 +36,18 @@ interface Exercise {
 }
 
 const ExercicePage = () => {
+  const navigation = useNavigation<ExerciceNavigationProp>();
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [shuffledExercises, setShuffledExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
 
   const fetchExercises = async () => {
     try {
       const response = await axios.get(`http://${IP}:5000/exercices`);
       setExercises(response.data);
+      // Mélanger les exercices dès leur réception
+      setShuffledExercises(shuffleArray(response.data));
     } catch (error) {
       Alert.alert("Erreur", "Impossible de récupérer les exercices.");
     } finally {
@@ -31,86 +55,78 @@ const ExercicePage = () => {
     }
   };
 
+  // Fonction pour mélanger un tableau aléatoirement
+  const shuffleArray = (array: Exercise[]) => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  };
+
   useEffect(() => {
     fetchExercises();
   }, []);
 
-  const groupByCategory = () => {
-    const categories: { [key: string]: Exercise[] } = {};
-    exercises.forEach((exercise) => {
-      if (!categories[exercise.category]) {
-        categories[exercise.category] = [];
-      }
-      categories[exercise.category].push(exercise);
-    });
-    return categories;
-  };
-
-  const filteredExercises = exercises.filter((exercise) => {
-    const matchesSearchQuery = exercise.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory ? exercise.category === selectedCategory : true;
-    return matchesSearchQuery && matchesCategory;
+  // Filtrer les exercices en fonction de la recherche
+  const filteredExercises = shuffledExercises.filter(exercise => {
+    return exercise.name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  const categories = Array.from(new Set(exercises.map((exercise) => exercise.category)));
+  const renderExerciseItem = ({ item }: { item: Exercise }) => (
+    <TouchableOpacity 
+      style={styles.exerciseCard}
+      onPress={() => navigation.navigate('exoDetails', { exercise: item })}
+    >
+      <Image source={{ uri: item.image }} style={styles.exerciseImage} />
+      <View style={styles.exerciseInfo}>
+        <ThemedText style={styles.exerciseName}>{item.name}</ThemedText>
+        <ThemedText style={styles.exerciseCategory}>{item.category}</ThemedText>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <ScrollView style={styles.container}>
+      {/* Header avec image de fond */}
       <View style={styles.header}>
-        <Text style={styles.goalText}>Exercices</Text>
+        <Image 
+          source={require('../../assets/images/Musculation.png')} 
+          style={styles.headerImage}
+        />
+        <ThemedText style={styles.headerTitle}>Exercices</ThemedText>
       </View>
 
+      {/* Barre de recherche */}
       <TextInput
         style={styles.searchBar}
         placeholder="Rechercher un exercice..."
-        placeholderTextColor="#999" // Ajout pour améliorer la visibilité du placeholder
+        placeholderTextColor="#999"
         value={searchQuery}
-        onChangeText={(text) => {
-          setSearchQuery(text);
-          console.log("Search Query:", text); // Pour déboguer
-        }}
+        onChangeText={setSearchQuery}
       />
 
-      <Picker
-        selectedValue={selectedCategory}
-        style={styles.picker}
-        onValueChange={(itemValue) => setSelectedCategory(itemValue)}
-      >
-        <Picker.Item label="Toutes les catégories" value="" />
-        {categories.map((category) => (
-          <Picker.Item key={category} label={category} value={category} />
-        ))}
-      </Picker>
-
+      {/* Liste des exercices */}
       {loading ? (
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color="#00b80e" />
       ) : (
-        Object.entries(groupByCategory()).map(([category, items]) => (
-          <View key={category}>
-            <Text style={styles.categoryTitle}>{category}</Text>
-            <FlatList
-              data={items.filter((item) =>
-                item.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-                (selectedCategory ? item.category === selectedCategory : true)
-              )}
-              horizontal
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={({ item }) => (
-                <View style={styles.card}>
-                  <Image source={{ uri: item.image }} style={styles.image} />
-                  <Text style={styles.exerciseTitle}>{item.name}</Text>
-                  <Text style={styles.exerciseInfo}>{item.description}</Text>
-                </View>
-              )}
-              showsHorizontalScrollIndicator={false}
-            />
-          </View>
-        ))
+        <FlatList
+          data={filteredExercises}
+          renderItem={renderExerciseItem}
+          keyExtractor={(item) => item.id.toString()}
+          numColumns={2}
+          columnWrapperStyle={styles.columnWrapper}
+          contentContainerStyle={styles.exercisesContainer}
+          scrollEnabled={false} // Désactive le scroll interne car nous utilisons ScrollView
+        />
       )}
 
-      {/* Section Footer */}
+      {/* Footer */}
       <ThemedView style={styles.footer}>
-        <ThemedText style={styles.footerText}>@Créé par Elmir Elias, Giovanni Mascaro, Ilyes Zekri</ThemedText>
+        <ThemedText style={styles.footerText}>
+          @Créé par Elmir Elias, Giovanni Mascaro, Ilyes Zekri
+        </ThemedText>
       </ThemedView>
     </ScrollView>
   );
@@ -119,81 +135,88 @@ const ExercicePage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "black",
+    backgroundColor: 'black',
   },
   header: {
-    padding: 30,
-    alignItems: "center",
+    height: 200,
+    position: 'relative',
   },
-  goalText: {
-    fontSize: 18,
-    color: "#fff",
-    marginTop: 30,
-    marginBottom: 10,
+  headerImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  headerTitle: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: 'white',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: {width: -1, height: 1},
+    textShadowRadius: 10
   },
   searchBar: {
     height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 10,
-    margin: 10,
+    backgroundColor: '#1F1F1F',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    margin: 15,
     color: 'white',
+    borderColor: '#00b80e',
+    borderWidth: 1
   },
-  picker: {
-    height: 50,
+  exercisesContainer: {
+    paddingHorizontal: 10,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  exerciseCard: {
+    width: '48%', // Pour avoir 2 colonnes avec un petit espace
+    backgroundColor: '#1F1F1F',
+    borderRadius: 10,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#00b80e',
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    marginBottom: 15,
+  },
+  exerciseImage: {
     width: '100%',
-    color: '#fff',
-    marginTop: -50,
-    marginBottom: 150,
-  },
-  categoryTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
-    margin: 10,
-  },
-  card: {
-    backgroundColor: "#333",
-    borderRadius: 10,
-    padding: 10,
-    marginHorizontal: 10,
-    width: 150,
-    alignItems: "center",
-  },
-  image: {
-    width: 150,
-    height: 100,
-    marginTop: -10,
-    borderRadius: 10,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-  },
-  exerciseTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#fff",
-    marginTop: 5,
+    height: 120,
+    resizeMode: 'cover'
   },
   exerciseInfo: {
-    fontSize: 12,
-    color: "#bbb",
+    padding: 10
+  },
+  exerciseName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 5
+  },
+  exerciseCategory: {
+    fontSize: 14,
+    color: '#00b80e'
   },
   footer: {
     backgroundColor: '#1F1F1F',
-    padding: 26,
+    padding: 20,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 50,
-    marginBottom: 84,
+    marginTop: 20,
     borderTopWidth: 1,
     borderTopColor: '#00b80e',
+    marginBottom: 80
   },
   footerText: {
-    fontSize: 14,
-    color: '#808080',
-    textAlign: 'center',
-  },
+    fontSize: 12,
+    color: '#808080'
+  }
 });
 
 export default ExercicePage;
