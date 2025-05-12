@@ -7,7 +7,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { Ionicons } from '@expo/vector-icons'; // Assurez-vous d'avoir installé @expo/vector-icons
 import { useNavigation } from '@react-navigation/native'; // Importez useNavigation
 import { StackNavigationProp } from '@react-navigation/stack';
-import * as Notifications from 'expo-notifications';
+
 
 type RootStackParamList = {
   Home: undefined;
@@ -53,53 +53,7 @@ export default function HomeScreen() {
     setNews((prevNews) => prevNews.filter((item) => item.id !== id));
   };
 
-  // Configuration des notifications
-  useEffect(() => {
-    // Définir le gestionnaire de notifications
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: false,
-        shouldSetBadge: false,
-      }),
-    });
-
-    // Enregistrer pour les notifications push
-    const registerForPushNotifications = async () => {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        alert('Permission refusée pour les notifications!');
-        return;
-      }
-
-      const token = await Notifications.getExpoPushTokenAsync();
-      console.log('Expo Push Token:', token.data);
-    };
-
-    registerForPushNotifications();
-
-    // Planifier une notification
-    const scheduleNotification = async () => {
-      if (Platform.OS === 'web') {
-        console.warn('Les notifications ne sont pas supportées sur le web.');
-        return;
-      }
-
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "Rappel d'entraînement",
-          body: "C'est l'heure de ton entraînement !",
-        },
-        trigger: {
-          type: 'timeInterval', // Ajout de la propriété `type`
-          seconds: 7200, // 2 heures
-          repeats: false,
-        }as Notifications.TimeIntervalTriggerInput
-      });
-    };
-
-    scheduleNotification();
-  }, []);
+ 
 
   return (
     <ScrollView style={styles.container}>

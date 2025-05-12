@@ -44,17 +44,12 @@ export default function HomeScreen() {
   const [currentSubscription, setCurrentSubscription] = useState<string>('Simple'); // État pour l'abonnement actuel
 
   useEffect(() => {
-    const fetchUserId = async () => {
+    const initialize = async () => {
       const id = await AsyncStorage.getItem('user_id');
       if (id) {
         setUserId(parseInt(id, 10));
       }
-    };
-    fetchUserId();
-  }, []);
 
-  useEffect(() => {
-    const checkLogin = async () => {
       const isLoggedIn = await AsyncStorage.getItem('isLoggedIn');
       if (isLoggedIn !== 'true') {
         navigation.navigate('login');
@@ -65,7 +60,7 @@ export default function HomeScreen() {
       }
     };
 
-    checkLogin();
+    initialize();
   }, [userId]);
 
   const fetchUserInfo = async () => {

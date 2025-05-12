@@ -4,7 +4,8 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Ionicons } from '@expo/vector-icons'; // Assurez-vous d'avoir installé @expo/vector-icons
-import { useNavigation } from '@react-navigation/native'; // Importez useNavigation
+import { router } from 'expo-router';
+
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,7 +23,7 @@ type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
 
 export default function HomeScreen() {      
-const navigation = useNavigation<HomeScreenNavigationProp>(); // Utilisez useNavigation
+// const navigation = useNavigation<HomeScreenNavigationProp>(); // Utilisez useNavigation
 
 const [username, setUsername] = useState('');
 const [password, setPassword] = useState('');
@@ -42,12 +43,14 @@ const handleLogin = async () => {
     });
 
     if (response.status === 200) {
+      console.error('Login successful:', response.data);
       const { user_id } = response.data;
       await AsyncStorage.setItem('isLoggedIn', 'true'); // Sauvegarde du statut de connexion
       await AsyncStorage.setItem('user_id', user_id.toString()); // Sauvegarde de l'ID utilisateur
+      router.replace('/'); // vers la page login
       Alert.alert('Succès', 'Connexion réussie !');
-      navigation.navigate('(tabs)');
     } else {
+      console.error('Login failed:', response.data);
       Alert.alert('Erreur', 'Identifiants incorrects.');
     }
   } catch (error) {
