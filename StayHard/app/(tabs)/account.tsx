@@ -55,6 +55,7 @@ export default function HomeScreen() {
         navigation.navigate('login');
       } else {
         fetchUserInfo();
+        // stocker l'id du coach si il existe 
         // fetchSubscriptions();
         // fetchUserSubscription();
       }
@@ -64,21 +65,28 @@ export default function HomeScreen() {
   }, [userId]);
 
   const fetchUserInfo = async () => {
-    if (userId) {
-      setIsRefreshing(true);
-      try {
-        const response = await axios.get(`http://${IP}:5000/user/${userId}`);
-        console.log('Informations utilisateur:', response.data);
-        setUserInfo(response.data);
-      } catch (error) {
-        console.error(error);
-        Alert.alert('Erreur', 'Impossible de récupérer les informations de l\'utilisateur.');
-      } finally {
-        setIsRefreshing(false);
+  if (userId) {
+    setIsRefreshing(true);
+    try {
+      const response = await axios.get(`http://${IP}:5000/user/${userId}`);
+      console.log('Informations utilisateur:', response.data);
+      setUserInfo(response.data);
+      
+      // Stocker le coach_id si il existe
+      if (response.data.coach_id) {
+        await AsyncStorage.setItem('coach_id', response.data.coach_id.toString());
+        console.log('Coach ID stocké:', response.data.coach_id);
       }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Erreur', 'Impossible de récupérer les informations de l\'utilisateur.');
+    } finally {
+      setIsRefreshing(false);
     }
-  };
+  }
+};
 
+    //(essaie de faire un abonnement)
   // const fetchSubscriptions = async () => {
   //   try {
   //     const response = await axios.get('http://${IP}:5000/subscriptions');
@@ -104,6 +112,7 @@ export default function HomeScreen() {
   const handleLogout = async () => {
     await AsyncStorage.removeItem('isLoggedIn');
     await AsyncStorage.removeItem('user_id');
+    await AsyncStorage.removeItem('coach_id');
     navigation.navigate('login');
   };
 
@@ -195,7 +204,7 @@ export default function HomeScreen() {
       {/* Section des abonnements */}
       <ThemedView style={styles.section}>
         <ThemedText type="subtitle" style={styles.sectionTitle}>
-          Abonnements
+          Abonnements{"\n"}Prochainement
         </ThemedText>
         <FlatList
           data={subscriptions}

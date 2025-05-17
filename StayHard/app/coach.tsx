@@ -1,16 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, Alert, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { View, Text, FlatList, ActivityIndicator, Alert, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-const IP="172.20.10.6";
+import { Ionicons } from '@expo/vector-icons';
 
-// Définir le type des paramètres de route
-type CoachRouteParams = {
-  CoachPage: {
-    coachId: number;
-  };
-};
+const IP = "172.20.10.6";
 
 interface Client {
   id: number;
@@ -30,170 +25,220 @@ interface Workout {
   exercises: string;
   status: string;
   user_id: number;
-  user_name: string;
 }
 
 const CoachPage = () => {
-  const route = useRoute<RouteProp<CoachRouteParams, 'CoachPage'>>();
-  const coachId = route.params?.coachId || 0;
-  
+  const navigation = useNavigation();
+  const [coachId, setCoachId] = useState<number | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [clientWorkouts, setClientWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedClientId, setSelectedClientId] = useState<string>('-1');
-  const [selectedWorkoutId, setSelectedWorkoutId] = useState<string>('-1');
   const [reason, setReason] = useState('');
+  const [activeTab, setActiveTab] = useState('clients');
 
-  // Fetch clients and workouts
-  const fetchData = async () => {
-    if (!coachId) return;
-    
+  // Récupérer le coachId au chargement
+  useEffect(() => {
+    const fetchCoachId = async () => {
+      try {
+        const storedId = await AsyncStorage.getItem('coach_id');
+        if (storedId) {
+          setCoachId(parseInt(storedId));
+          fetchClients(parseInt(storedId));
+        } else {
+          Alert.alert('Erreur', 'Aucun coach ID trouvé');
+          navigation.goBack();
+        }
+      } catch (error) {
+        console.error("Erreur récupération coachId:", error);
+        Alert.alert('Erreur', 'Problème de chargement des données');
+      }
+    };
+
+    fetchCoachId();
+  }, []);
+
+  // Fetch clients data
+  const fetchClients = async (id: number) => {
     setLoading(true);
     try {
-      const [clientsResponse, workoutsResponse] = await Promise.all([
-        axios.get(`http://${IP}:5000/coach/clients/${coachId}`),
-        axios.get(`http://${IP}:5000/workouts/${coachId}`)
-      ]);
-      
-      setClients(clientsResponse.data);
-      setWorkouts(workoutsResponse.data);
+      const response = await axios.get(`http://${IP}:5000/coach/clients/${id}`);
+      setClients(response.data);
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible de récupérer les données');
-      console.error('Fetch error:', error);
+      Alert.alert('Erreur', 'Impossible de récupérer la liste des clients');
+      console.error('Fetch clients error:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [coachId]);
+  // Fetch workouts for a specific client
+  const fetchClientWorkouts = async (clientId: number) => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`http://${IP}:5000/workouts/${clientId}`);
+      setClientWorkouts(response.data);
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible de récupérer les séances du client');
+      console.error('Fetch workouts error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectClient = (client: Client) => {
+    setSelectedClient(client);
+    fetchClientWorkouts(client.id);
+    setActiveTab('clientDetail');
+  };
 
   const handleRemoveClient = async () => {
-    if (selectedClientId === '-1' || !reason) {
-      Alert.alert('Erreur', 'Sélectionnez un client et fournissez une raison');
+    if (!selectedClient || !reason || !coachId) {
+      Alert.alert('Erreur', 'Veuillez fournir une raison pour la résiliation');
       return;
     }
 
     try {
-      await axios.delete(`http://${IP}:5000/coach/remove-client/${selectedClientId}`, {
+      await axios.delete(`http://${IP}:5000/coach/remove-client/${selectedClient.id}`, {
         data: { reason, coach_id: coachId }
       });
       
-      Alert.alert('Succès', 'Client supprimé avec succès');
-      await fetchData();
-      setSelectedClientId('-1');
+      Alert.alert('Succès', 'Contrat résilié avec succès');
+      setSelectedClient(null);
       setReason('');
+      fetchClients(coachId);
+      setActiveTab('clients');
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible de supprimer le client');
+      Alert.alert('Erreur', 'Impossible de résilier le contrat');
       console.error('Remove client error:', error);
     }
   };
 
-  const handleWorkoutAction = async (action: 'approve' | 'reject') => {
-    if (selectedWorkoutId === '-1') return;
+  const renderClientItem = ({ item }: { item: Client }) => (
+    <TouchableOpacity 
+      style={styles.clientItem}
+      onPress={() => handleSelectClient(item)}
+    >
+      <Text style={styles.clientName}>{item.name}</Text>
+      <Text style={styles.clientGoal}>Objectif: {item.sport_goal}</Text>
+      <Text style={styles.clientInfo}>{item.age} ans • {item.weight}kg • {item.height}cm</Text>
+    </TouchableOpacity>
+  );
 
-    try {
-      await axios.put(`http://${IP}:5000/workouts/${selectedWorkoutId}`, {
-        status: action === 'approve' ? 'approved' : 'rejected'
-      });
-      
-      Alert.alert('Succès', `Séance ${action === 'approve' ? 'approuvée' : 'rejetée'}`);
-      await fetchData();
-      setSelectedWorkoutId('-1');
-    } catch (error) {
-      Alert.alert('Erreur', `Impossible de ${action === 'approve' ? 'approuver' : 'rejeter'} la séance`);
-      console.error('Workout action error:', error);
-    }
-  };
+  const renderWorkoutItem = ({ item }: { item: Workout }) => (
+    <View style={styles.workoutItem}>
+      <Text style={styles.workoutDate}>{new Date(item.date).toLocaleDateString()}</Text>
+      <Text style={styles.workoutType}>{item.type}</Text>
+      <Text style={styles.workoutDuration}>{item.duration} min</Text>
+      <Text style={styles.workoutExercises}>{item.exercises}</Text>
+      <Text style={[
+        styles.workoutStatus,
+        item.status === 'approved' ? styles.statusApproved : 
+        item.status === 'rejected' ? styles.statusRejected : styles.statusPending
+      ]}>
+        {item.status === 'approved' ? '✓ Approuvé' : item.status === 'rejected' ? '✗ Rejeté' : '⌛ En attente'}
+      </Text>
+    </View>
+  );
 
-  const renderHeader = () => (
-    <View style={styles.headerContainer}>
-      <Text style={styles.title}>Tableau de bord Coach</Text>
-      
-      <Text style={styles.sectionTitle}>Gestion des clients</Text>
+  const renderClientsList = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Mes Clients ({clients.length})</Text>
       {clients.length > 0 ? (
-        <Picker
-          selectedValue={selectedClientId}
-          style={styles.picker}
-          onValueChange={setSelectedClientId}
-        >
-          <Picker.Item label="Sélectionner un client" value="-1" />
-          {clients.map((client) => (
-            <Picker.Item key={client.id} label={client.name} value={client.id.toString()} />
-          ))}
-        </Picker>
+        <FlatList
+          data={clients}
+          renderItem={renderClientItem}
+          keyExtractor={(item) => item.id.toString()}
+          refreshing={loading}
+          onRefresh={() => coachId && fetchClients(coachId)}
+        />
       ) : (
-        <Text style={styles.infoText}>Aucun client assigné</Text>
-      )}
-
-      {selectedClientId !== '-1' && (
-        <>
-          <TextInput
-            style={styles.reasonInput}
-            placeholder="Raison de la suppression..."
-            value={reason}
-            onChangeText={setReason}
-            multiline
-          />
-          <TouchableOpacity
-            style={[styles.button, !reason && styles.disabledButton]}
-            onPress={handleRemoveClient}
-            disabled={!reason}
-          >
-            <Text style={styles.buttonText}>Supprimer le client</Text>
-          </TouchableOpacity>
-        </>
-      )}
-
-      <Text style={styles.sectionTitle}>Validation des séances</Text>
-      {workouts.length > 0 ? (
-        <Picker
-          selectedValue={selectedWorkoutId}
-          style={styles.picker}
-          onValueChange={setSelectedWorkoutId}
-        >
-          <Picker.Item label="Sélectionner une séance" value="-1" />
-          {workouts.map((workout) => (
-            <Picker.Item 
-              key={workout.id} 
-              label={`${workout.date} - ${workout.user_name}`} 
-              value={workout.id.toString()} 
-            />
-          ))}
-        </Picker>
-      ) : (
-        <Text style={styles.infoText}>Aucune séance à valider</Text>
-      )}
-
-      {selectedWorkoutId !== '-1' && (
-        <View style={styles.actionButtonsContainer}>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.approveButton]}
-            onPress={() => handleWorkoutAction('approve')}
-          >
-            <Text style={styles.buttonText}>Approuver</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.rejectButton]}
-            onPress={() => handleWorkoutAction('reject')}
-          >
-            <Text style={styles.buttonText}>Rejeter</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.noDataText}>Aucun client assigné</Text>
       )}
     </View>
   );
 
+  const renderClientDetail = () => {
+    if (!selectedClient) return null;
+
+    return (
+      <ScrollView style={styles.section}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => {
+            setSelectedClient(null);
+            setActiveTab('clients');
+          }}
+        >
+          <Ionicons name="arrow-back" size={24} color="#3498db" />
+          <Text style={styles.backButtonText}>Retour à la liste</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.clientDetailTitle}>Détails du Client</Text>
+        
+        <View style={styles.clientInfoContainer}>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Nom:</Text>
+            <Text style={styles.infoValue}>{selectedClient.name}</Text>
+          </View>
+          
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Âge:</Text>
+            <Text style={styles.infoValue}>{selectedClient.age} ans</Text>
+          </View>
+          
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Poids/Taille:</Text>
+            <Text style={styles.infoValue}>{selectedClient.weight}kg / {selectedClient.height}cm</Text>
+          </View>
+          
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Objectif:</Text>
+            <Text style={styles.infoValue}>{selectedClient.sport_goal}</Text>
+          </View>
+        </View>
+
+        <Text style={styles.subSectionTitle}>Historique d'entraînement ({clientWorkouts.length})</Text>
+        {clientWorkouts.length > 0 ? (
+          <FlatList
+            data={clientWorkouts}
+            renderItem={renderWorkoutItem}
+            keyExtractor={(item) => item.id.toString()}
+            scrollEnabled={false}
+          />
+        ) : (
+          <Text style={styles.noDataText}>Aucune séance enregistrée</Text>
+        )}
+
+        <Text style={styles.subSectionTitle}>Résilier le contrat</Text>
+        <TextInput
+          style={styles.reasonInput}
+          placeholder="Entrez la raison de la résiliation..."
+          placeholderTextColor="#999"
+          value={reason}
+          onChangeText={setReason}
+          multiline
+        />
+        <TouchableOpacity
+          style={[styles.removeButton, !reason && styles.disabledButton]}
+          onPress={handleRemoveClient}
+          disabled={!reason}
+        >
+          <Text style={styles.removeButtonText}>Résilier le contrat</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  };
+
   if (!coachId) {
     return (
       <View style={styles.centeredContainer}>
-        <Text style={styles.errorText}>ID du coach non disponible</Text>
+        <ActivityIndicator size="large" color="#0000ff" />
       </View>
     );
   }
 
-  if (loading) {
+  if (loading && activeTab === 'clients') {
     return (
       <View style={styles.centeredContainer}>
         <ActivityIndicator size="large" color="#0000ff" />
@@ -202,100 +247,174 @@ const CoachPage = () => {
   }
 
   return (
-    <FlatList
-      data={[]}
-      renderItem={null}
-      ListHeaderComponent={renderHeader}
-      contentContainerStyle={styles.container}
-    />
+    <View style={styles.container}>
+      {activeTab === 'clients' ? renderClientsList() : renderClientDetail()}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
-    padding: 16,
-    backgroundColor: '#f5f5f5',
-  },
-  headerContainer: {
-    marginBottom: 20,
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+    padding: 15,
   },
   centeredContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {
+  section: {
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#2c3e50',
+  },
+  subSectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 25,
+    marginBottom: 15,
+    color: '#2c3e50',
+  },
+  clientItem: {
+    backgroundColor: 'white',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+    elevation: 2,
+  },
+  clientName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    color: '#2c3e50',
+  },
+  clientGoal: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    marginBottom: 3,
+  },
+  clientInfo: {
+    fontSize: 13,
+    color: '#95a5a6',
+  },
+  clientDetailTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
-    color: '#333',
+    color: '#2c3e50',
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 20,
-    marginBottom: 10,
-    color: '#333',
-  },
-  picker: {
+  clientInfoContainer: {
     backgroundColor: 'white',
-    marginBottom: 15,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 20,
+    elevation: 2,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ecf0f1',
+  },
+  infoLabel: {
+    fontWeight: 'bold',
+    color: '#34495e',
+  },
+  infoValue: {
+    color: '#7f8c8d',
+  },
+  workoutItem: {
+    backgroundColor: 'white',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+    elevation: 2,
+  },
+  workoutDate: {
+    fontWeight: 'bold',
+    color: '#34495e',
+    marginBottom: 5,
+  },
+  workoutType: {
+    fontStyle: 'italic',
+    color: '#3498db',
+    marginBottom: 5,
+  },
+  workoutDuration: {
+    color: '#7f8c8d',
+    marginBottom: 5,
+  },
+  workoutExercises: {
+    color: '#2c3e50',
+    marginTop: 10,
+    lineHeight: 20,
+  },
+  workoutStatus: {
+    marginTop: 10,
+    fontWeight: 'bold',
+    textAlign: 'right',
+  },
+  statusApproved: {
+    color: '#27ae60',
+  },
+  statusRejected: {
+    color: '#e74c3c',
+  },
+  statusPending: {
+    color: '#f39c12',
   },
   reasonInput: {
     backgroundColor: 'white',
     borderWidth: 1,
     borderColor: '#ddd',
-    borderRadius: 5,
-    padding: 10,
+    borderRadius: 10,
+    padding: 15,
     marginBottom: 15,
     minHeight: 100,
     textAlignVertical: 'top',
+    fontSize: 16,
+    color: '#2c3e50',
   },
-  button: {
+  removeButton: {
     backgroundColor: '#e74c3c',
     padding: 15,
-    borderRadius: 5,
+    borderRadius: 10,
     alignItems: 'center',
     marginBottom: 20,
   },
-  disabledButton: {
-    backgroundColor: '#cccccc',
-  },
-  actionButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  actionButton: {
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    flex: 1,
-    marginHorizontal: 5,
-  },
-  approveButton: {
-    backgroundColor: '#2ecc71',
-  },
-  rejectButton: {
-    backgroundColor: '#e74c3c',
-  },
-  buttonText: {
+  removeButtonText: {
     color: 'white',
     fontWeight: 'bold',
-  },
-  errorText: {
-    color: 'red',
     fontSize: 16,
   },
-  infoText: {
-    color: '#666',
-    textAlign: 'center',
+  disabledButton: {
+    backgroundColor: '#bdc3c7',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 15,
+    padding: 5,
+  },
+  backButtonText: {
+    color: '#3498db',
+    fontWeight: 'bold',
+    marginLeft: 5,
+    fontSize: 16,
+  },
+  noDataText: {
+    textAlign: 'center',
+    color: '#95a5a6',
+    marginTop: 20,
+    fontSize: 16,
   },
 });
 

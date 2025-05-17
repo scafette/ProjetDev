@@ -100,7 +100,7 @@ export default function HomeScreen() {
             <Ionicons name="card-outline" size={24} color="#00b80e" />
             <ThemedText style={styles.cardText}>
               Carte d'accès{"\n"}
-              <ThemedText style={styles.smallText}>Valide jusqu'au 31/12/2021</ThemedText>
+              <ThemedText style={styles.smallText}>Valide jusqu'au 31/12/2025</ThemedText>
             </ThemedText>
           </TouchableOpacity>
 

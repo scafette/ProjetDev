@@ -95,23 +95,25 @@ const NutritionPage = () => {
       {/* Section ImageBackground avec Objectif */}
       <View style={styles.header}>
         <ImageBackground source={require('../assets/images/nutrition.jpg')} style={styles.headerImage}>
-          <Text style={styles.headerText}>Mon objectif: {"\n"}</Text>
-          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 24 }}>{dailyKcal}</Text>
-          <Text style={styles.headerText2}>kcal/jour</Text>
-          {/* Card Programme en cours */}
-          <Card containerStyle={styles.card}>
-            <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>Votre programme en cours{"\n"}</Text>
-              <Text style={styles.cardSubtitle}>{userGoal}</Text>
-              <Icon
-                name="edit"
-                type="material"
-                onPress={() => setEditModalVisible(true)}
-                containerStyle={styles.editIcon}
-                color={'white'}
-              />
-            </View>
-          </Card>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerText}>Mon objectif:</Text>
+            <Text style={styles.kcalText}>{dailyKcal}</Text>
+            <Text style={styles.headerText2}>kcal/jour</Text>
+            {/* Card Programme en cours */}
+            <Card containerStyle={styles.card}>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>Votre programme en cours</Text>
+                <Text style={styles.cardSubtitle}>{userGoal}</Text>
+                <Icon
+                  name="edit"
+                  type="material"
+                  onPress={() => setEditModalVisible(true)}
+                  containerStyle={styles.editIcon}
+                  color={'white'}
+                />
+              </View>
+            </Card>
+          </View>
         </ImageBackground>
       </View>
 
@@ -225,46 +227,74 @@ const styles = StyleSheet.create({
   header: {
     height: 300,
     position: 'relative',
+    width: '100%',
   },
   headerImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+  },
+  headerContent: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 20,
   },
   headerText: {
     textAlign: 'center',
     fontWeight: 'bold',
-    marginBottom: 20,
     fontSize: 22,
     color: 'white',
+    marginBottom: 5,
+  },
+  kcalText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 24,
+    marginBottom: 5,
   },
   headerText2: {
     fontSize: 18,
     color: 'white',
+    textAlign: 'center',
+    marginBottom: 20,
   },
   card: {
     borderRadius: 10,
-    margin: 20,
+    marginHorizontal: 20,
+    marginTop: 20,
     padding: 20,
     width: '90%',
     alignSelf: 'center',
     backgroundColor: '#1F1F1F',
   },
   cardContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    justifyContent: 'center',
     alignItems: 'center',
+    width: '100%',
+    position: 'relative',
   },
   cardTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: 'white',
+    marginBottom: 15,
+    textAlign: 'center',
+    width: '100%',
   },
   cardSubtitle: {
     fontSize: 18,
     color: 'white',
+    textAlign: 'center',
+    marginBottom: 5,
+    width: '100%',
+  },
+  editIcon: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
   },
   editIcon: {
     marginLeft: 10,
