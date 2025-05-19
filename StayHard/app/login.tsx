@@ -13,6 +13,30 @@ const IP = "172.20.10.6";
 export default function HomeScreen() {      
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [userId, setUserId] = useState(null);
+  const [userInfo, setUserInfo] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+
+  const fetchUserInfo = async () => {
+  if (userId) {
+    setIsRefreshing(true);
+    try {
+      const response = await axios.get(`http://${IP}:5000/user/${userId}`);
+      console.log('Informations utilisateur:', response.data);
+      setUserInfo(response.data);
+      if (response.data.status === 'ban') {
+        Alert.alert('Erreur', response.data.raison_ban);
+        return;
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Erreur', 'Impossible de récupérer les informations de l\'utilisateur.');
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
+};
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -31,6 +55,9 @@ export default function HomeScreen() {
         const { user_id } = response.data;
         await AsyncStorage.setItem('isLoggedIn', 'true');
         await AsyncStorage.setItem('user_id', user_id.toString());
+        setUserId(user_id);
+        await fetchUserInfo(); // Fetch user info after login
+        
         router.replace('/'); // Navigate to home after login
         Alert.alert('Succès', 'Connexion réussie !');
       } else {

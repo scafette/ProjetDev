@@ -55,6 +55,10 @@ const AdminPage = () => {
   const [userWorkouts, setUserWorkouts] = useState<Workout[]>([]);
   const [showUserDetails, setShowUserDetails] = useState(false);
 
+  // États pour les sélecteurs
+  const [showUserPicker, setShowUserPicker] = useState(false);
+  const [pickerType, setPickerType] = useState<'role' | 'coach' | null>(null);
+
   // Chargement des données
   useEffect(() => {
     const loadData = async () => {
@@ -196,7 +200,7 @@ const AdminPage = () => {
     if (data.length === 0) {
       return (
         <Text style={styles.noResultsText}>
-          {showBannedUsers ? 'Aucun utilisateur banni' : 'Aucun utilisateur trouvé'}
+          {showBannedUsers ? 'Vous pourrez bannir les utilisateurs dans prochaine mise à jour' : 'Mise a jour le 28/05/2025'}
         </Text>
       );
     }
@@ -214,6 +218,9 @@ const AdminPage = () => {
           <Text style={styles.userDetails}>
             {user.age} ans • {user.weight}kg • {user.height}cm
           </Text>
+          {user.sport_goal && (
+            <Text style={styles.userDetails}>Objectif: {user.sport_goal}</Text>
+          )}
           {user.is_banned && user.ban_reason && (
             <Text style={styles.banReason}>Raison: {user.ban_reason}</Text>
           )}
@@ -223,29 +230,12 @@ const AdminPage = () => {
           {!user.is_banned && (
             <>
               <TouchableOpacity 
-                style={styles.viewButton}
+                style={styles.actionIcon}
                 onPress={() => loadUserDetails(user)}
               >
                 <Ionicons name="eye" size={20} color="#3498db" />
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.banButton}
-                onPress={() => {
-                  setUserToBan(user);
-                  setBanModalVisible(true);
-                }}
-              >
-                <Ionicons name="ban" size={20} color="#e74c3c" />
-              </TouchableOpacity>
             </>
-          )}
-          {user.is_banned && (
-            <TouchableOpacity 
-              style={styles.unbanButton}
-              onPress={() => handleUnbanUser(user.id)}
-            >
-              <Text style={styles.unbanButtonText}>Débannir</Text>
-            </TouchableOpacity>
           )}
         </View>
       </View>
@@ -260,7 +250,10 @@ const AdminPage = () => {
       
       <TouchableOpacity 
         style={styles.selectInput}
-        onPress={() => setShowRolePicker(true)}
+        onPress={() => {
+          setPickerType('role');
+          setShowUserPicker(true);
+        }}
       >
         <Text style={selectedUserForRole ? styles.selectInputText : styles.selectInputPlaceholder}>
           {users.find(u => u.id === selectedUserForRole)?.name || 'Sélectionner un utilisateur'}
@@ -291,7 +284,10 @@ const AdminPage = () => {
       
       <TouchableOpacity 
         style={styles.selectInput}
-        onPress={() => setShowUserForCoachPicker(true)}
+        onPress={() => {
+          setPickerType('coach');
+          setShowUserPicker(true);
+        }}
       >
         <Text style={selectedUserForCoach ? styles.selectInputText : styles.selectInputPlaceholder}>
           {users.find(u => u.id === selectedUserForCoach)?.name || 'Sélectionner un utilisateur'}
@@ -322,26 +318,26 @@ const AdminPage = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Administration</Text>
+        <Text style={styles.headerTitle}>PANEL ADMINISTRATION</Text>
       </View>
 
       {/* Toggle pour basculer entre utilisateurs actifs/bannis */}
-      <View style={styles.toggleBanViewContainer}>
+      <View style={styles.toggleContainer}>
         <TouchableOpacity
-          style={[styles.toggleBanViewButton, !showBannedUsers && styles.activeToggleButton]}
+          style={[styles.toggleButton, !showBannedUsers && styles.activeToggle]}
           onPress={() => setShowBannedUsers(false)}
         >
-          <Text style={[styles.toggleBanViewText, !showBannedUsers && styles.activeToggleText]}>
-            Utilisateurs actifs ({users.length})
+          <Text style={[styles.toggleText, !showBannedUsers && styles.activeToggleText]}>
+            Actifs ({users.length})
           </Text>
         </TouchableOpacity>
         
         <TouchableOpacity
-          style={[styles.toggleBanViewButton, showBannedUsers && styles.activeToggleButton]}
+          style={[styles.toggleButton, showBannedUsers && styles.activeToggle]}
           onPress={() => setShowBannedUsers(true)}
         >
-          <Text style={[styles.toggleBanViewText, showBannedUsers && styles.activeToggleText]}>
-            Utilisateurs bannis ({bannedUsers.length})
+          <Text style={[styles.toggleText, showBannedUsers && styles.activeToggleText]}>
+            Bannis ({bannedUsers.length})
           </Text>
         </TouchableOpacity>
       </View>
@@ -353,180 +349,180 @@ const AdminPage = () => {
         {/* Affichage des sélecteurs uniquement pour les utilisateurs actifs */}
         {!showBannedUsers && renderSelectors()}
       </ScrollView>
+      
 
-      {/* Modal de bannissement */}
-      <Modal
-        visible={banModalVisible}
-        transparent={true}
-        animationType="slide"
-      >
-        <TouchableWithoutFeedback onPress={() => setBanModalVisible(false)}>
-          <View style={styles.modalOverlay} />
-        </TouchableWithoutFeedback>
-        
-        <View style={styles.banModalContent}>
-          <Text style={styles.banModalTitle}>
-            Bannir {userToBan?.name} ({userToBan?.role})
-          </Text>
-          
-          <Text style={styles.banModalText}>
-            Veuillez indiquer la raison du bannissement :
-          </Text>
-          
-          <TextInput
-            style={styles.banReasonInput}
-            placeholder="Raison du bannissement..."
-            placeholderTextColor="#95a5a6"
-            value={banReason}
-            onChangeText={setBanReason}
-            multiline
-            numberOfLines={4}
-          />
-          
-          <View style={styles.banModalButtons}>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setBanModalVisible(false)}
-            >
-              <Text style={styles.cancelButtonText}>Annuler</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.confirmBanButton, !banReason && styles.disabledButton]}
-              onPress={handleBanUser}
-              disabled={!banReason}
-            >
-              <Text style={styles.confirmBanButtonText}>Confirmer</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal des détails utilisateur */}
+      {/* Nouveau Modal des détails utilisateur */}
       <Modal
         visible={showUserDetails}
         transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowUserDetails(false)}
+        animationType="fade"
       >
-        <TouchableWithoutFeedback onPress={() => setShowUserDetails(false)}>
-          <View style={styles.modalOverlay} />
-        </TouchableWithoutFeedback>
-        
-        <View style={styles.detailsModalContent}>
-          <Text style={styles.detailsModalTitle}>
-            Détails de {selectedUserDetails?.name}
-          </Text>
-          
-          <View style={styles.userInfoSection}>
-            <Text style={styles.userInfoText}>Username: {selectedUserDetails?.username}</Text>
-            <Text style={styles.userInfoText}>Âge: {selectedUserDetails?.age}</Text>
-            <Text style={styles.userInfoText}>Poids: {selectedUserDetails?.weight} kg</Text>
-            <Text style={styles.userInfoText}>Taille: {selectedUserDetails?.height} cm</Text>
-            <Text style={styles.userInfoText}>Objectif: {selectedUserDetails?.sport_goal}</Text>
-            <Text style={styles.userInfoText}>Rôle: {selectedUserDetails?.role}</Text>
-            {selectedUserDetails?.coach_id && (
-              <Text style={styles.userInfoText}>
-                Coach: {users.find(u => u.id === selectedUserDetails.coach_id)?.name || 'Non assigné'}
-              </Text>
-            )}
-          </View>
-          
-          <Text style={styles.sectionTitle}>Historique d'entraînements</Text>
-          <ScrollView style={styles.workoutsContainer}>
-            {userWorkouts.length > 0 ? (
-              userWorkouts.map(workout => (
-                <View key={workout.id} style={styles.workoutCard}>
-                  <Text style={styles.workoutType}>{workout.type}</Text>
-                  <Text style={styles.workoutDate}>Date: {workout.date}</Text>
-                  <Text style={styles.workoutDuration}>Durée: {workout.duration} min</Text>
-                  <Text style={styles.workoutExercises}>Exercices: {workout.exercises}</Text>
-                  <Text style={styles.workoutStatus}>Statut: {workout.status}</Text>
-                </View>
-              ))
-            ) : (
-              <Text style={styles.noWorkoutsText}>Aucun entraînement enregistré</Text>
-            )}
-          </ScrollView>
-          
-          <TouchableOpacity
-            style={styles.closeDetailsButton}
-            onPress={() => setShowUserDetails(false)}
-          >
-            <Text style={styles.closeDetailsButtonText}>Fermer</Text>
-          </TouchableOpacity>
-        </View>
-      </Modal>
-
-      {/* Modals pour les sélecteurs */}
-      {/* Modal pour sélection rôle */}
-      <Modal
-        visible={showRolePicker}
-        transparent={true}
-        animationType="slide"
-      >
-        <TouchableWithoutFeedback onPress={() => setShowRolePicker(false)}>
-          <View style={styles.modalOverlay} />
-        </TouchableWithoutFeedback>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Sélectionner un rôle</Text>
-          <ScrollView>
-            {['user', 'coach', 'admin'].map(role => (
-              <TouchableOpacity
-                key={role}
-                style={styles.modalItem}
-                onPress={() => {
-                  setSelectedRole(role);
-                  setShowRolePicker(false);
-                }}
-              >
-                <Text style={styles.modalItemText}>
-                  {role === 'user' ? 'Utilisateur' : role === 'coach' ? 'Coach' : 'Admin'}
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, styles.largeModalCard]}>
+            <ScrollView>
+              <View style={styles.modalHeaderContainer}>
+                <Text style={styles.modalHeader}>
+                  {selectedUserDetails?.name}
                 </Text>
-                {selectedRole === role && (
-                  <Ionicons name="checkmark" size={20} color="#3498db" />
+                <Text style={styles.modalSubtitle}>
+                  {selectedUserDetails?.role} {selectedUserDetails?.is_banned && '(BANNI)'}
+                </Text>
+              </View>
+
+              <View style={styles.detailSection}>
+                <View style={styles.detailRow}>
+                  <Ionicons name="person" size={18} color="#7f8c8d" />
+                  <Text style={styles.detailText}>{selectedUserDetails?.username}</Text>
+                </View>
+                
+                <View style={styles.detailRow}>
+                  <Ionicons name="calendar" size={18} color="#7f8c8d" />
+                  <Text style={styles.detailText}>{selectedUserDetails?.age} ans</Text>
+                </View>
+                
+                <View style={styles.detailRow}>
+                  <Ionicons name="speedometer" size={18} color="#7f8c8d" />
+                  <Text style={styles.detailText}>{selectedUserDetails?.weight} kg / {selectedUserDetails?.height} cm</Text>
+                </View>
+                
+                {selectedUserDetails?.sport_goal && (
+                  <View style={styles.detailRow}>
+                    <Ionicons name="trophy" size={18} color="#7f8c8d" />
+                    <Text style={styles.detailText}>{selectedUserDetails?.sport_goal}</Text>
+                  </View>
                 )}
+                
+                {selectedUserDetails?.coach_id && (
+                  <View style={styles.detailRow}>
+                    <Ionicons name="person-add" size={18} color="#7f8c8d" />
+                    <Text style={styles.detailText}>
+                      Coach: {users.find(u => u.id === selectedUserDetails.coach_id)?.name || 'Non assigné'}
+                    </Text>
+                  </View>
+                )}
+                
+                {selectedUserDetails?.is_banned && selectedUserDetails?.ban_reason && (
+                  <View style={styles.detailRow}>
+                    <Ionicons name="warning" size={18} color="#e74c3c" />
+                    <Text style={[styles.detailText, {color: '#e74c3c'}]}>
+                      Raison: {selectedUserDetails.ban_reason}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <Text style={styles.sectionTitleModal}>Historique d'entraînements</Text>
+              
+              {userWorkouts.length > 0 ? (
+                userWorkouts.map(workout => (
+                  <View key={workout.id} style={styles.workoutItem}>
+                    <View style={styles.workoutHeader}>
+                      <Text style={styles.workoutType}>{workout.type}</Text>
+                      <Text style={styles.workoutDate}>{workout.date}</Text>
+                    </View>
+                    <Text style={styles.workoutInfo}>Durée: {workout.duration} min</Text>
+                    <Text style={styles.workoutInfo}>Statut: {workout.status}</Text>
+                    <Text style={styles.workoutExercises}>{workout.exercises}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.noDataText}>Aucun entraînement enregistré</Text>
+              )}
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              {selectedUserDetails?.is_banned && (
+                <TouchableOpacity
+                  style={styles.modalSuccessButton}
+                  onPress={() => handleUnbanUser(selectedUserDetails.id)}
+                >
+                  <Text style={styles.modalPrimaryButtonText}>Débannir</Text>
+                </TouchableOpacity>
+              )}
+              
+              <TouchableOpacity
+                style={styles.modalSecondaryButton}
+                onPress={() => setShowUserDetails(false)}
+              >
+                <Text style={styles.modalSecondaryButtonText}>Fermer</Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
+            </View>
+          </View>
         </View>
       </Modal>
 
-      {/* Modal pour sélection coach */}
+      {/* Nouveau Modal pour sélection utilisateur/coach */}
       <Modal
-        visible={showCoachPicker}
+        visible={showUserPicker || showRolePicker || showCoachPicker}
         transparent={true}
-        animationType="slide"
+        animationType="fade"
       >
-        <TouchableWithoutFeedback onPress={() => setShowCoachPicker(false)}>
-          <View style={styles.modalOverlay} />
-        </TouchableWithoutFeedback>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Sélectionner un coach</Text>
-          <ScrollView>
-            {coaches.map(coach => (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalHeader}>
+              {showRolePicker ? 'Sélectionner un rôle' : 
+               showCoachPicker ? 'Choisir un coach' : 'Sélectionner un utilisateur'}
+            </Text>
+            
+            <ScrollView style={styles.modalScrollContent}>
+              {(showRolePicker ? ['user', 'coach', 'admin'] : 
+                (showCoachPicker ? coaches : users)).map(item => (
+                <TouchableOpacity
+                  key={typeof item === 'string' ? item : item.id}
+                  style={styles.modalListItem}
+                  onPress={() => {
+                    if (showRolePicker) {
+                      setSelectedRole(item as string);
+                      setShowRolePicker(false);
+                    } else if (showCoachPicker) {
+                      setSelectedCoachId((item as User).id);
+                      setShowCoachPicker(false);
+                    } else {
+                      if (pickerType === 'role') {
+                        setSelectedUserForRole((item as User).id);
+                      } else {
+                        setSelectedUserForCoach((item as User).id);
+                      }
+                      setShowUserPicker(false);
+                    }
+                  }}
+                >
+                  <Text style={styles.modalListItemText}>
+                    {typeof item === 'string' ? 
+                      (item === 'user' ? 'Utilisateur' : item === 'coach' ? 'Coach' : 'Admin') : 
+                      `${item.name} (${item.role})`}
+                  </Text>
+                  {(showRolePicker && selectedRole === item) || 
+                   (showCoachPicker && selectedCoachId === (item as User).id) || 
+                   (!showRolePicker && !showCoachPicker && 
+                    ((pickerType === 'role' && selectedUserForRole === (item as User).id) || 
+                     (pickerType === 'coach' && selectedUserForCoach === (item as User).id))) ? (
+                    <Ionicons name="checkmark-circle" size={20} color="#3498db" />
+                  ) : null}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            
+            <View style={styles.modalFooter}>
               <TouchableOpacity
-                key={coach.id}
-                style={styles.modalItem}
+                style={styles.modalSecondaryButton}
                 onPress={() => {
-                  setSelectedCoachId(coach.id);
+                  setShowUserPicker(false);
+                  setShowRolePicker(false);
                   setShowCoachPicker(false);
                 }}
               >
-                <Text style={styles.modalItemText}>{coach.name}</Text>
-                {selectedCoachId === coach.id && (
-                  <Ionicons name="checkmark" size={20} color="#3498db" />
-                )}
+                <Text style={styles.modalSecondaryButtonText}>Fermer</Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
+            </View>
+          </View>
         </View>
       </Modal>
     </View>
   );
 };
 
-// Styles (identique à la version précédente)
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -544,29 +540,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: 'white',
   },
-  toggleBanViewContainer: {
+  toggleContainer: {
     flexDirection: 'row',
-    marginBottom: 15,
+    margin: 15,
     backgroundColor: '#ecf0f1',
     borderRadius: 10,
     overflow: 'hidden',
-    marginHorizontal: 15,
-    marginTop: 15,
   },
-  toggleBanViewButton: {
+  toggleButton: {
     flex: 1,
-    padding: 12,
+    padding: 15,
     alignItems: 'center',
   },
-  activeToggleButton: {
+  activeToggle: {
     backgroundColor: '#3498db',
   },
-  toggleBanViewText: {
-    color: '#2c3e50',
+  toggleText: {
+    color: '#7f8c8d',
     fontWeight: 'bold',
   },
   activeToggleText: {
@@ -596,6 +590,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontWeight: 'bold',
+    fontSize: 16,
     color: '#2c3e50',
     marginBottom: 5,
   },
@@ -608,95 +603,27 @@ const styles = StyleSheet.create({
     color: '#e74c3c',
     fontSize: 12,
     fontStyle: 'italic',
-    marginTop: 3,
+    marginTop: 5,
   },
   userActions: {
     flexDirection: 'row',
+    gap: 15,
     alignItems: 'center',
   },
-  viewButton: {
-    backgroundColor: '#e8f4fc',
-    padding: 8,
-    borderRadius: 20,
-    marginRight: 10,
-  },
-  banButton: {
-    backgroundColor: '#fde8e8',
+  actionIcon: {
+    backgroundColor: '#f8f9fa',
     padding: 8,
     borderRadius: 20,
   },
   unbanButton: {
     backgroundColor: '#27ae60',
-    padding: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 5,
   },
   unbanButtonText: {
     color: 'white',
     fontWeight: 'bold',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  banModalContent: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 20,
-    width: '90%',
-    alignSelf: 'center',
-    marginTop: '30%',
-  },
-  banModalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#e74c3c',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  banModalText: {
-    color: '#2c3e50',
-    marginBottom: 10,
-  },
-  banReasonInput: {
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 10,
-    minHeight: 100,
-    textAlignVertical: 'top',
-    marginBottom: 15,
-    color: '#2c3e50',
-  },
-  banModalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  cancelButton: {
-    backgroundColor: '#ecf0f1',
-    padding: 12,
-    borderRadius: 8,
-    flex: 1,
-    marginRight: 10,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: '#7f8c8d',
-    fontWeight: 'bold',
-  },
-  confirmBanButton: {
-    backgroundColor: '#e74c3c',
-    padding: 12,
-    borderRadius: 8,
-    flex: 2,
-    alignItems: 'center',
-  },
-  confirmBanButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  disabledButton: {
-    backgroundColor: '#bdc3c7',
   },
   noResultsText: {
     textAlign: 'center',
@@ -704,11 +631,19 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontStyle: 'italic',
   },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginTop: 25,
+    marginBottom: 15,
+  },
   selectInput: {
     backgroundColor: 'white',
     borderRadius: 10,
     padding: 15,
     marginBottom: 15,
+    marginTop: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -735,108 +670,164 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  modalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '60%',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+  disabledButton: {
+    backgroundColor: '#bdc3c7',
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
+
+  // Nouveaux styles pour les modals
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    overflow: 'hidden',
+  },
+  largeModalCard: {
+    maxHeight: '90%',
+  },
+  modalHeaderContainer: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f1f1',
+  },
+  modalHeader: {
+    fontSize: 20,
+    fontWeight: '600',
     color: '#2c3e50',
     textAlign: 'center',
   },
-  modalItem: {
+  modalSubheader: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    textAlign: 'center',
+    marginTop: 5,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    textAlign: 'center',
+    marginTop: 5,
+  },
+  modalInput: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 15,
+    margin: 20,
+    marginTop: 10,
+    fontSize: 16,
+  },
+  modalScrollContent: {
+    maxHeight: 300,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f1f1',
+  },
+  modalPrimaryButton: {
+    backgroundColor: '#3498db',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 6,
+    marginLeft: 10,
+  },
+  modalSecondaryButton: {
+    backgroundColor: '#ecf0f1',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 6,
+  },
+  modalSuccessButton: {
+    backgroundColor: '#27ae60',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 6,
+    marginLeft: 10,
+  },
+  modalPrimaryButtonText: {
+    color: 'white',
+    fontWeight: '500',
+  },
+  modalSecondaryButtonText: {
+    color: '#7f8c8d',
+    fontWeight: '500',
+  },
+  modalListItem: {
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#ecf0f1',
+    borderBottomColor: '#f1f1f1',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  modalItemText: {
+  modalListItemText: {
     fontSize: 16,
     color: '#2c3e50',
   },
-  detailsModalContent: {
-    backgroundColor: 'white',
-    borderRadius: 10,
+  detailSection: {
     padding: 20,
-    width: '90%',
-    maxHeight: '80%',
-    alignSelf: 'center',
-    marginTop: '10%',
   },
-  detailsModalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2c3e50',
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 15,
-    textAlign: 'center',
   },
-  userInfoSection: {
-    marginBottom: 20,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ecf0f1',
-  },
-  userInfoText: {
+  detailText: {
+    marginLeft: 10,
     fontSize: 16,
     color: '#2c3e50',
-    marginBottom: 8,
   },
-  workoutsContainer: {
-    maxHeight: 200,
+  sectionTitleModal: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginTop: 10,
     marginBottom: 15,
+    paddingHorizontal: 20,
   },
-  workoutCard: {
+  workoutItem: {
+    padding: 15,
+    marginHorizontal: 20,
+    marginBottom: 15,
     backgroundColor: '#f8f9fa',
     borderRadius: 8,
-    padding: 12,
-    marginBottom: 10,
+  },
+  workoutHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 5,
   },
   workoutType: {
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: '#3498db',
   },
   workoutDate: {
     color: '#7f8c8d',
-    fontSize: 14,
   },
-  workoutDuration: {
+  workoutInfo: {
     color: '#7f8c8d',
-    fontSize: 14,
+    marginBottom: 3,
   },
   workoutExercises: {
     color: '#2c3e50',
     marginTop: 5,
+    fontStyle: 'italic',
   },
-  workoutStatus: {
-    color: '#7f8c8d',
-    fontSize: 14,
-    marginTop: 3,
-  },
-  noWorkoutsText: {
+  noDataText: {
     textAlign: 'center',
     color: '#95a5a6',
     fontStyle: 'italic',
-  },
-  closeDetailsButton: {
-    backgroundColor: '#3498db',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  closeDetailsButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
+    padding: 20,
   },
 });
 
