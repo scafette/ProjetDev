@@ -8,7 +8,6 @@ StayHard est une application mobile de fitness qui permet aux utilisateurs de su
 - Communication directe avec les coachs
 - Gestion des profils utilisateurs
 - Interface d'administration pour la gestion des utilisateurs et des coachs
-- Système de bannissement pour la modération
 - Assignation de coachs aux utilisateurs
 
 ## Prérequis
