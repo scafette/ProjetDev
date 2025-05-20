@@ -19,69 +19,23 @@ import RNPickerSelect from 'react-native-picker-select';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DatePicker from 'react-datepicker';
-const IP="172.20.10.6";
 
+const IP = "172.20.10.6";
 
-// Types de sports disponibles
-const sportTypes = [
-  { label: 'Course à pied', value: 'Course à pied', color: 'black' },
-  { label: 'Cyclisme', value: 'Cyclisme', color: 'black' },
-  { label: 'Natation', value: 'Natation', color: 'black' },
-  { label: 'Musculation', value: 'Musculation', color: 'black' },
-  { label: 'Yoga', value: 'Yoga', color: 'black' },
-];
-
-// Exercices disponibles par type de sport
-const exercisesByType: { [key: string]: string[] } = {
-  'Course à pied': ['Footing', 'Fractionné', 'Endurance'],
-  Cyclisme: ['Sortie longue', 'Montée', 'Entraînement intensif'],
-  Natation: ['Brasse', 'Crawl', 'Papillon'],
-  Musculation: ['Squat', 'Développé couché', 'Tractions'],
-  Yoga: ['Salutation au soleil', 'Posture de l\'arbre', 'Posture du guerrier'],
-};
-
-// Styles personnalisés pour RNPickerSelect
-const pickerSelectStyles = {
-  inputIOS: {
-    fontSize: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: '#00b80e',
-    borderRadius: 10,
-    color: '#FFFFFF',
-    paddingRight: 30,
-    backgroundColor: '#2D2D2D',
-    marginBottom: 16,
-  },
-  inputAndroid: {
-    fontSize: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#00b80e',
-    borderRadius: 10,
-    color: '#FFFFFF',
-    paddingRight: 30,
-    backgroundColor: '#2D2D2D',
-    marginBottom: 16,
-  },
-  placeholder: {
-    color: '#808080',
-  },
-  iconContainer: {
-    top: 10,
-    right: 12,
-  },
-};
-
-// Types pour les séances
 type Session = {
   id: string;
   date: string;
   type: string;
-  duration: number; // Durée en secondes
+  duration: number;
   exercises: string;
+};
+
+type Exercise = {
+  id: number;
+  name: string;
+  description: string;
+  image: string;
+  category: string;
 };
 
 export default function PlanningScreen() {
@@ -102,8 +56,10 @@ export default function PlanningScreen() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
   const [userId, setUserId] = useState<number | null>(null);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [sportTypes, setSportTypes] = useState<{label: string, value: string, color: string}[]>([]);
+  const [exercisesByType, setExercisesByType] = useState<{[key: string]: {label: string, value: string}[]}>({});
 
   // Récupérer l'ID de l'utilisateur connecté
   useEffect(() => {
@@ -116,6 +72,44 @@ export default function PlanningScreen() {
     fetchUserId();
   }, []);
 
+  // Récupérer les exercices depuis l'API
+  useEffect(() => {
+    const fetchExercises = async () => {
+      try {
+        const response = await axios.get(`http://${IP}:5000/exercices`);
+        setExercises(response.data);
+      } catch (error) {
+        console.error('Erreur lors de la récupération des exercices:', error);
+      }
+    };
+    fetchExercises();
+  }, []);
+
+  // Organiser les exercices par catégorie
+  useEffect(() => {
+    if (exercises.length > 0) {
+      const categories = Array.from(new Set(exercises.map(ex => ex.category)));
+      
+      const types = categories.map(category => ({
+        label: category,
+        value: category,
+        color: 'black'
+      }));
+      setSportTypes(types);
+      
+      const groupedExercises: {[key: string]: {label: string, value: string}[]} = {};
+      categories.forEach(category => {
+        groupedExercises[category] = exercises
+          .filter(ex => ex.category === category)
+          .map(ex => ({
+            label: ex.name,
+            value: ex.name
+          }));
+      });
+      setExercisesByType(groupedExercises);
+    }
+  }, [exercises]);
+
   // Récupérer les séances depuis le serveur
   const fetchSessions = async () => {
     if (!userId) return;
@@ -123,7 +117,6 @@ export default function PlanningScreen() {
     try {
       const response = await axios.get(`http://${IP}:5000/workouts/${userId}`);
       if (response.status === 200) {
-        console.log('Séances récupérées:', response.data); // Log pour vérifier les données
         setSessions(response.data);
       }
     } catch (error) {
@@ -247,7 +240,6 @@ export default function PlanningScreen() {
   // Gestion du changement de type de sport
   const handleTypeChange = (value: string) => {
     setForm({ ...form, type: value || '', exercises: '' });
-    setSelectedExercises(exercisesByType[value] || []);
   };
 
   // Filtrer les séances en fonction de la date actuelle
@@ -262,6 +254,41 @@ export default function PlanningScreen() {
   const filteredSessions = selectedDate
     ? sessionsToDisplay.filter((session) => session.date === selectedDate)
     : sessionsToDisplay;
+
+  // Styles pour les sélecteurs
+  const pickerSelectStyles = {
+    inputIOS: {
+      fontSize: 16,
+      paddingVertical: 12,
+      paddingHorizontal: 10,
+      borderWidth: 1,
+      borderColor: '#00b80e',
+      borderRadius: 10,
+      color: '#FFFFFF',
+      paddingRight: 30,
+      backgroundColor: '#2D2D2D',
+      marginBottom: 16,
+    },
+    inputAndroid: {
+      fontSize: 16,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: '#00b80e',
+      borderRadius: 10,
+      color: '#FFFFFF',
+      paddingRight: 30,
+      backgroundColor: '#2D2D2D',
+      marginBottom: 16,
+    },
+    placeholder: {
+      color: '#808080',
+    },
+    iconContainer: {
+      top: 10,
+      right: 12,
+    },
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -335,11 +362,8 @@ export default function PlanningScreen() {
               </TouchableOpacity>
             </View>
           </View>
-          
         ))}
       </View>
-
-      
 
       {/* Modal pour ajouter/modifier une séance */}
       <Modal visible={modalVisible} animationType="slide">
@@ -352,7 +376,7 @@ export default function PlanningScreen() {
           {Platform.OS === 'web' ? (
             <DatePicker
               selected={form.date ? new Date(form.date) : null}
-              onChange={handleDateChangeWeb}
+              onChange={(date: Date) => setForm({ ...form, date: date.toISOString().split('T')[0] })}
               dateFormat="yyyy-MM-dd"
               placeholderText="Sélectionner une date"
               className="date-picker"
@@ -379,7 +403,7 @@ export default function PlanningScreen() {
           )}
 
           {/* Sélecteur de type de sport */}
-          <View style={styles.pickerContainers}>
+          <View style={styles.pickerContainer}>
             <RNPickerSelect
               onValueChange={handleTypeChange}
               items={sportTypes}
@@ -466,10 +490,7 @@ export default function PlanningScreen() {
           <View style={styles.pickerContainer}>
             <RNPickerSelect
               onValueChange={(value) => setForm({ ...form, exercises: value || '' })}
-              items={selectedExercises.map((exercise) => ({
-                label: exercise,
-                value: exercise,
-              }))}
+              items={form.type ? exercisesByType[form.type] || [] : []}
               placeholder={{ label: 'Sélectionner des exercices', value: '' }}
               value={form.exercises}
               style={pickerSelectStyles}
@@ -491,8 +512,6 @@ export default function PlanningScreen() {
           </View>
         </View>
       </Modal>
-
-      
 
       {/* Section Footer */}
       <ThemedView style={styles.footer}>
@@ -599,14 +618,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2D2D2D',
   },
   pickerContainer: {
-    flex: 1,
-    marginHorizontal: 4,
-    color: '#FFFFFF',
-  },
-  pickerContainers: {
-    justifyContent: 'space-between',
     marginBottom: 16,
-    marginTop: 220,
   },
   pickerRow: {
     flexDirection: 'row',
