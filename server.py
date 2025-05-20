@@ -103,8 +103,6 @@ def init_db():
             coach_id INTEGER,
             is_banned BOOLEAN DEFAULT 0,
             ban_reason TEXT,
-            ALTER TABLE users ADD COLUMN ban_count INTEGER DEFAULT 0;
-            ALTER TABLE users ADD COLUMN ban_until DATETIME;
             last_activity DATETIME  -- Dernière activité de l'utilisateur
         )
     ''')
@@ -251,7 +249,7 @@ def check_ban(user_id):
 def get_banned_users():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM users WHERE is_banned = 1')
+    cursor.execute('SELECT * FROM users WHERE status = "ban"')
     banned_users = cursor.fetchall()
     conn.close()
 
@@ -267,8 +265,8 @@ def get_banned_users():
             'sport_goal': user['sport_goal'],
             'role': user['role'],
             'coach_id': user['coach_id'],
-            'is_banned': user['is_banned'],
-            'ban_reason': user['ban_reason']
+            'status': user['status'],
+            'ban_raison': user['ban_raison']
         })
 
     return jsonify(user_list), 200
@@ -303,56 +301,38 @@ def ban_user(user_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Récupérer le nombre actuel de bannissements
-    cursor.execute('SELECT ban_count FROM users WHERE id = ?', (user_id,))
-    result = cursor.fetchone()
-    ban_count = result['ban_count'] + 1 if result else 1
+
+    # Bannissement permanent
+    cursor.execute('''
+        UPDATE users 
+        SET status = 'ban', 
+            ban_raison = ?
+        WHERE id = ?
+    ''', (reason, user_id))
     
-    if ban_count >= 3:
-        # Bannissement permanent
-        cursor.execute('''
-            UPDATE users 
-            SET is_banned = 1, 
-                ban_count = ?,
-                ban_reason = ?,
-                ban_until = NULL
-            WHERE id = ?
-        ''', (ban_count, reason, user_id))
-    else:
-        # Bannissement temporaire (3 minutes)
-        ban_until = (datetime.now() + timedelta(minutes=3)).strftime('%Y-%m-%d %H:%M:%S')
-        cursor.execute('''
-            UPDATE users 
-            SET is_banned = 1,
-                ban_count = ?,
-                ban_reason = ?,
-                ban_until = ?
-            WHERE id = ?
-        ''', (ban_count, reason, ban_until, user_id))
     
     conn.commit()
     conn.close()
-    return jsonify({'message': 'User banned successfully', 'ban_count': ban_count}), 200
+    return jsonify({'message': 'User banned successfully'}), 200
+
+
 # Route pour débannir un utilisateur
 @app.route('/admin/unban-user/<int:user_id>', methods=['PUT'])
 def unban_user(user_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    try:
-        cursor.execute('''
-            UPDATE users 
-            SET is_banned = 0, ban_reason = NULL
-            WHERE id = ?
-        ''', (user_id,))
-        
-        conn.commit()
-        return jsonify({'message': 'User unbanned successfully'}), 200
-    except Exception as e:
-        conn.rollback()
-        return jsonify({'message': str(e)}), 500
-    finally:
-        conn.close()
+    cursor.execute('''
+        UPDATE users 
+        SET status = 'active', 
+            ban_raison = NULL
+        WHERE id = ?
+    ''', (user_id))
+    
+    
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'User unbanned successfully'}), 200
 
 # Route pour obtenir les informations du coach d'un utilisateur
 @app.route('/user/coach/<int:user_id>', methods=['GET'])
@@ -878,7 +858,9 @@ def get_user_profile(user_id):
             'height': user['height'],
             'sport_goal': user['sport_goal'],
             'role': user['role'],
-            'coach_id': user['coach_id']
+            'coach_id': user['coach_id'],
+            'status': user['status'],
+            'ban_raison': user['ban_raison'],
         }
         return jsonify(user_profile), 200
     else:
