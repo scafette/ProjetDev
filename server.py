@@ -1127,7 +1127,9 @@ def get_nutrition():
             'calories': entry['calories'],
             'category': entry['category'],
             'goal_category': entry['goal_category'],
-            'image': entry['image']
+            'image': entry['image'],
+            'preparation': entry['preparation'],
+
         })
 
     return jsonify(nutrition_list), 200
@@ -1148,7 +1150,10 @@ def get_nutrition_entry(nutrition_id):
             'preparation_time': entry['preparation_time'],
             'calories': entry['calories'],
             'category': entry['category'],
-            'goal_category': entry['goal_category']
+            'goal_category': entry['goal_category'],
+            
+            
+            
         }
         return jsonify(nutrition_entry), 200
     else:
@@ -1163,6 +1168,7 @@ def update_nutrition(nutrition_id):
     calories = data['calories']
     category = data['category']
     goal_category = data['goal_category']
+
 
     conn = get_db_connection()
     cursor = conn.cursor()
