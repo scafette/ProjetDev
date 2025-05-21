@@ -77,15 +77,12 @@ function ClientList({ navigation }: ClientListProps) {
         setUserRole(userData.role);
 
         if (userData.role === 'admin') {
-          // Admin peut voir tout le monde
           const allUsersRes = await axios.get(`http://${IP}:5000/admin/users`);
           setClients(allUsersRes.data.filter((user: User) => user.id !== userIdNum));
         } else if (userData.role === 'coach') {
-          // Coach peut voir ses clients
           const clientsRes = await axios.get(`http://${IP}:5000/coach/clients/${id}`);
           setClients(clientsRes.data);
         } else if (userData.role === 'user') {
-          // User peut voir son coach et l'admin
           const coachRes = await axios.get(`http://${IP}:5000/user/coach/${id}`);
           const adminRes = await axios.get(`http://${IP}:5000/users/admin`);
           
@@ -140,7 +137,7 @@ function ClientList({ navigation }: ClientListProps) {
       <FlatList
         data={clients}
         renderItem={renderClient}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item?.id?.toString() || Math.random().toString()}
         contentContainerStyle={styles.listContainer}
         ListEmptyComponent={
           <Text style={styles.emptyText}>
@@ -270,9 +267,7 @@ function MessagerieScreen({ route, navigation }: MessagerieProps) {
     if (!newMessage.trim() && !image) return;
     if (!userId || !userRole) return;
 
-    // Vérification des permissions
     if (userRole === 'user') {
-      // Un user ne peut envoyer des messages qu'à son coach ou à l'admin
       const allowedReceivers = [];
       if (coachId) allowedReceivers.push(coachId);
       if (adminId) allowedReceivers.push(adminId);
@@ -282,7 +277,6 @@ function MessagerieScreen({ route, navigation }: MessagerieProps) {
         return;
       }
     } else if (userRole === 'coach') {
-      // Un coach ne peut envoyer des messages qu'à ses clients
       const clientsRes = await axios.get(`http://${IP}:5000/coach/clients/${userId}`);
       const clientIds = clientsRes.data.map((client: User) => client.id);
       
@@ -291,7 +285,6 @@ function MessagerieScreen({ route, navigation }: MessagerieProps) {
         return;
       }
     }
-    // Pour admin, pas de restriction
 
     let tempMessage: Message | null = null;
 
@@ -447,7 +440,7 @@ function MessagerieScreen({ route, navigation }: MessagerieProps) {
         ref={listRef}
         data={messages}
         renderItem={renderMessage}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item?.id?.toString() || Math.random().toString()}
         contentContainerStyle={styles.messagesList}
         inverted={false}
         onContentSizeChange={() => listRef.current?.scrollToEnd({animated: true})}
