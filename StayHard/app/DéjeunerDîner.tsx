@@ -1,41 +1,73 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, StyleSheet, ImageBackground, Image, TextInput } from 'react-native';
-import { Card, Icon } from 'react-native-elements';
-import { ThemedText } from '@/components/ThemedText';
-import { useNavigation } from '@react-navigation/native'; // Importez useNavigation
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import axios from 'axios';
+
+const IP = "172.20.10.6";
 
 type RootStackParamList = {
   Home: undefined;
-  MealDetails: { meal: { category: string, name: string, kcal: number, time: number, image: any } };
-  
+  MealDetails: { meal: Meal };
 };
 
-type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
-
-const meals = [
-  { category: 'Déjeuner', name: 'Poulet grillé avec quinoa', kcal: 500, time: 30, image: require('../assets/images/nutrition.jpg') },
-  { category: 'Déjeuner', name: 'Salade César', kcal: 400, time: 20, image: require('../assets/images/nutrition.jpg') },
-  { category: 'Dîner', name: 'Saumon avec légumes vapeur', kcal: 450, time: 25, image: require('../assets/images/nutrition.jpg') },
-  // Ajoutez d'autres déjeuners et dîners ici
-];
+type Meal = {
+  id: number;
+  name: string;
+  ingredients: string;
+  preparation_time: number;
+  calories: number;
+  category: string;
+  goal_category: string;
+  preparation: string;
+  image: string;
+};
 
 const DejeunerDiner = () => {
-      const navigation = useNavigation<HomeScreenNavigationProp>(); // Utilisez useNavigation
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const [meals, setMeals] = useState<Meal[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMeals = async () => {
+      try {
+        const response = await axios.get(`http://${IP}:5000/nutrition`);
+        const dejeunerDinerMeals = response.data.filter((meal: Meal) => 
+          meal.category === 'Déjeuner' || meal.category === 'Dîner'
+        );
+        setMeals(dejeunerDinerMeals);
+      } catch (error) {
+        console.error('Error fetching meals:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMeals();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Chargement...</Text>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Déjeuner & Dîner</Text>
-      {meals
-        .filter((meal) => meal.category === 'Déjeuner' || meal.category === 'Dîner')
-        .map((meal, index) => (
-          <View key={index} style={styles.card}>
-                <Image source={meal.image} style={styles.image} />
-                <TouchableOpacity onPress={() => navigation.navigate('MealDetails', { meal })}>  
-                <Text style={styles.mealName}>{meal.name}</Text>
-                <Text style={styles.mealDetails}>{meal.kcal} kcal - {meal.time} min</Text>
-                </TouchableOpacity>
-            </View>
-        ))}
+      {meals.map((meal, index) => (
+        <View key={index} style={styles.card}>
+          <Image source={{ uri: meal.image }} style={styles.image} />
+          <TouchableOpacity onPress={() => navigation.navigate('MealDetails', { meal })}>
+            <Text style={styles.mealName}>{meal.name}</Text>
+            <Text style={styles.mealDetails}>
+              {meal.calories} kcal - {meal.preparation_time} min
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ))}
     </ScrollView>
   );
 };
@@ -45,6 +77,16 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: 'black',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'black',
+  },
+  loadingText: {
+    color: 'white',
+    fontSize: 18,
   },
   title: {
     fontSize: 24,
@@ -78,4 +120,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DejeunerDiner
+export default DejeunerDiner;

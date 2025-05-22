@@ -58,9 +58,9 @@ const NutritionPage = () => {
     fetchMeals();
   }, []);
 
-  // Filtrer les plats par catégorie
+  // Filtrer les plats par catégorie et n'afficher que 3 plats
   const renderMeals = (category: string) => {
-    const filteredMeals = meals.filter(meal => meal.category === category);
+    const filteredMeals = meals.filter(meal => meal.category === category).slice(0, 3);
 
     return (
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
