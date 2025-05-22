@@ -10,7 +10,9 @@ import {
   ActivityIndicator,
   Image,
   Modal,
-  Pressable
+  Pressable,
+  Platform,
+  StatusBar
 } from 'react-native';
 import { createStackNavigator, StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
@@ -18,6 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { io, Socket } from 'socket.io-client';
+import { Ionicons, Feather, MaterialIcons } from '@expo/vector-icons';
 const IP = "172.20.10.6";
 
 // Types
@@ -35,21 +38,24 @@ type User = {
   id: number;
   name: string;
   username: string;
+  avatar?: string;
 };
 
 // Types pour la navigation
 type RootStackParamList = {
   ClientList: undefined;
-  Messagerie: { clientId: number; clientName: string };
+  Messagerie: { clientId: number; clientName: string; clientAvatar?: string };
 };
 
 // Composant Liste des Clients
 function ClientList({ navigation }: { navigation: StackNavigationProp<RootStackParamList, 'ClientList'> }) {
   const [clients, setClients] = useState<User[]>([]);
+  const [filteredClients, setFilteredClients] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<number | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [adminId, setAdminId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -68,16 +74,27 @@ function ClientList({ navigation }: { navigation: StackNavigationProp<RootStackP
         const adminRes = await axios.get(`http://${IP}:5000/users/admin`);
         setAdminId(adminRes.data.id);
 
+        let clientsData: User[] = [];
+        
         if (userData.role === 'admin') {
           const allUsersRes = await axios.get(`http://${IP}:5000/admin/users`);
-          setClients(allUsersRes.data.filter((user: User) => user.id !== userIdNum));
+          clientsData = allUsersRes.data.filter((user: User) => user.id !== userIdNum);
         } else if (userData.role === 'coach') {
           const clientsRes = await axios.get(`http://${IP}:5000/coach/clients/${id}`);
-          setClients([...clientsRes.data, adminRes.data]);
+          clientsData = [...clientsRes.data, adminRes.data];
         } else if (userData.role === 'user') {
           const coachRes = await axios.get(`http://${IP}:5000/user/coach/${id}`);
-          setClients([...(coachRes.data ? [coachRes.data] : []), adminRes.data]);
+          clientsData = [...(coachRes.data ? [coachRes.data] : []), adminRes.data];
         }
+
+        // Ajouter des avatars par défaut si non fournis
+        clientsData = clientsData.map(client => ({
+          ...client,
+          avatar: client.avatar || `https://ui-avatars.com/api/?name=${client.name}&background=random`
+        }));
+
+        setClients(clientsData);
+        setFilteredClients(clientsData);
 
       } catch (error) {
         console.error('Failed to load clients:', error);
@@ -89,44 +106,88 @@ function ClientList({ navigation }: { navigation: StackNavigationProp<RootStackP
     loadUserData();
   }, []);
 
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredClients(clients);
+    } else {
+      const filtered = clients.filter(client => 
+        client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        client.username.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredClients(filtered);
+    }
+  }, [searchQuery, clients]);
+
   const renderClient = ({ item }: { item: User }) => (
     <TouchableOpacity
       style={styles.clientItem}
       onPress={() => navigation.navigate('Messagerie', { 
         clientId: item.id,
-        clientName: item.name 
+        clientName: item.name,
+        clientAvatar: item.avatar
       })}
     >
-      <Text style={styles.clientName}>{item.name}</Text>
-      <Text style={styles.clientUsername}>@{item.username}</Text>
+      <Image 
+        source={{ uri: item.avatar }} 
+        style={styles.clientAvatar}
+      />
+      <View style={styles.clientInfo}>
+        <Text style={styles.clientName}>{item.name}</Text>
+        <Text style={styles.clientUsername}>@{item.username}</Text>
+      </View>
+      <Feather name="chevron-right" size={20} color="#888" />
     </TouchableOpacity>
   );
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007bff" />
+        <ActivityIndicator size="large" color="#6C63FF" />
       </View>
     );
   }
 
   return (
     <View style={styles.clientListContainer}>
-      <Text style={styles.title}>
-        {userRole === 'admin' ? 'Messagerie Admin' : 
-         userRole === 'coach' ? 'Mes Clients' : 
-         userRole === 'user'  ? 'Messagerie' : 'Messagerie'}
-      </Text>
+      <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+      
+      <View style={styles.headerContainer}>
+        <Text style={styles.title}>
+          {userRole === 'admin' ? 'Messagerie Admin' : 
+           userRole === 'coach' ? 'Mes Clients' : 
+           userRole === 'user'  ? 'Messagerie' : 'Messagerie'}
+        </Text>
+      </View>
+
+      <View style={styles.searchContainer}>
+        <Feather name="search" size={20} color="#888" style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Rechercher un contact..."
+          placeholderTextColor="#888"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearch}>
+            <Feather name="x" size={18} color="#888" />
+          </TouchableOpacity>
+        )}
+      </View>
+
       <FlatList
-        data={clients}
+        data={filteredClients}
         renderItem={renderClient}
         keyExtractor={(item) => item?.id?.toString() || Math.random().toString()}
         contentContainerStyle={styles.listContainer}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            {userRole === 'admin' ? 'Aucun utilisateur' : 
-             userRole === 'coach' ? 'Aucun client assigné' : 'Aucun contact disponible'}
-          </Text>
+          <View style={styles.emptyContainer}>
+            <Feather name="users" size={50} color="#6C63FF" />
+            <Text style={styles.emptyText}>
+              {userRole === 'admin' ? 'Aucun utilisateur trouvé' : 
+               userRole === 'coach' ? 'Aucun client assigné' : 'Aucun contact disponible'}
+            </Text>
+          </View>
         }
       />
     </View>
@@ -138,7 +199,7 @@ function MessagerieScreen({ route, navigation }: {
   route: RouteProp<RootStackParamList, 'Messagerie'>,
   navigation: StackNavigationProp<RootStackParamList, 'Messagerie'>
 }) {
-  const { clientId, clientName } = route.params;
+  const { clientId, clientName, clientAvatar } = route.params;
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [userId, setUserId] = useState<number | null>(null);
@@ -151,6 +212,7 @@ function MessagerieScreen({ route, navigation }: {
   const [modalVisible, setModalVisible] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editedMessage, setEditedMessage] = useState('');
+  const [userAvatar, setUserAvatar] = useState<string>('https://ui-avatars.com/api/?name=User&background=random');
   const socket = useRef<Socket | null>(null);
   const listRef = useRef<FlatList>(null);
 
@@ -166,6 +228,7 @@ function MessagerieScreen({ route, navigation }: {
         const userRes = await axios.get(`http://${IP}:5000/user/${id}`);
         const userData = userRes.data;
         setUserRole(userData.role);
+        setUserAvatar(userData.avatar || `https://ui-avatars.com/api/?name=${userData.name}&background=random`);
 
         // Charger l'admin ID pour tous les utilisateurs
         const adminRes = await axios.get(`http://${IP}:5000/users/admin`);
@@ -179,7 +242,7 @@ function MessagerieScreen({ route, navigation }: {
         }
 
         const res = await axios.get(`http://${IP}:5000/messages/${userIdNum}/${clientId}`);
-        setMessages(Array.isArray(res.data) ? res.data : []);
+        setMessages(Array.isArray(res.data) ? res.data.reverse() : []);
 
       } catch (error) {
         console.error('Failed to load messages:', error);
@@ -199,7 +262,7 @@ function MessagerieScreen({ route, navigation }: {
     socket.current.on('newMessage', (message: Message) => {
       setMessages(prev => {
         if (!prev.some(msg => msg.id === message.id)) {
-          return [...prev, message];
+          return [message, ...prev];
         }
         return prev;
       });
@@ -224,6 +287,7 @@ function MessagerieScreen({ route, navigation }: {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
+        aspect: [4, 3],
         quality: 0.8,
       });
 
@@ -240,7 +304,6 @@ function MessagerieScreen({ route, navigation }: {
     if (!userId || !userRole || !adminId) return;
 
     if (userRole === 'user') {
-      // User peut parler à son coach ET à l'admin obligatoirement
       const allowedReceivers = [];
       if (coachId) allowedReceivers.push(coachId);
       allowedReceivers.push(adminId);
@@ -250,7 +313,6 @@ function MessagerieScreen({ route, navigation }: {
         return;
       }
     } else if (userRole === 'coach') {
-      // Coach peut parler à ses clients ET à l'admin
       const clientsRes = await axios.get(`http://${IP}:5000/coach/clients/${userId}`);
       const clientIds = clientsRes.data.map((client: User) => client.id);
       clientIds.push(adminId);
@@ -260,7 +322,6 @@ function MessagerieScreen({ route, navigation }: {
         return;
       }
     }
-    // Admin n'a pas de restriction
 
     const tempId = Date.now();
     const tempMessage: Message = {
@@ -369,15 +430,23 @@ function MessagerieScreen({ route, navigation }: {
       <TouchableOpacity 
         onLongPress={() => handleLongPress(item)}
         activeOpacity={0.7}
+        style={isSent ? styles.sentMessageContainer : styles.receivedMessageContainer}
       >
+        {!isSent && (
+          <Image 
+            source={{ uri: clientAvatar || 'https://ui-avatars.com/api/?name=User&background=random' }} 
+            style={styles.messageAvatar}
+          />
+        )}
+        
         <View style={[
-          styles.messageContainer,
-          isSent ? styles.sentMessage : styles.receivedMessage,
+          styles.messageBubble,
+          isSent ? styles.sentMessageBubble : styles.receivedMessageBubble,
         ]}>
           {item.image_url && (
             item.image_url === 'uploading...' ? (
               <View style={styles.uploadingContainer}>
-                <ActivityIndicator size="small" color={isSent ? '#fff' : '#007bff'} />
+                <ActivityIndicator size="small" color={isSent ? '#fff' : '#6C63FF'} />
                 <Text style={[styles.uploadingText, isSent && { color: '#fff' }]}>
                   Envoi en cours...
                 </Text>
@@ -397,8 +466,22 @@ function MessagerieScreen({ route, navigation }: {
           )}
           <Text style={isSent ? styles.sentTimestamp : styles.receivedTimestamp}>
             {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {isSent && (
+              item.is_read ? (
+                <Ionicons name="checkmark-done" size={14} color="#4CAF50" style={styles.readIcon} />
+              ) : (
+                <Ionicons name="checkmark" size={14} color="#888" style={styles.readIcon} />
+              )
+            )}
           </Text>
         </View>
+        
+        {isSent && (
+          <Image 
+            source={{ uri: userAvatar }} 
+            style={styles.messageAvatar}
+          />
+        )}
       </TouchableOpacity>
     );
   };
@@ -406,22 +489,37 @@ function MessagerieScreen({ route, navigation }: {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007bff" />
+        <ActivityIndicator size="large" color="#6C63FF" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backButton}>←</Text>
+    <View style={styles.messagerieContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor="#6C63FF" />
+      
+      <View style={styles.messagerieHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.clientHeader}>
-          {userRole === 'admin' ? `Conversation avec ${clientName}` : 
-           userRole === 'coach' ? (clientId === adminId ? 'Admin' : clientName) : 
-           (clientId === adminId ? 'Admin' : clientName)}
-        </Text>
+        
+        <Image 
+          source={{ uri: clientAvatar || 'https://ui-avatars.com/api/?name=User&background=random' }} 
+          style={styles.headerAvatar}
+        />
+        
+        <View style={styles.headerInfo}>
+          <Text style={styles.headerName}>
+            {userRole === 'admin' ? clientName : 
+             userRole === 'coach' ? (clientId === adminId ? 'Admin' : clientName) : 
+             (clientId === adminId ? 'Admin' : clientName)}
+          </Text>
+          <Text style={styles.headerStatus}>En ligne</Text>
+        </View>
+        
+        <TouchableOpacity style={styles.headerButton}>
+          <Feather name="more-vertical" size={20} color="#fff" />
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -436,32 +534,12 @@ function MessagerieScreen({ route, navigation }: {
         maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
         ListEmptyComponent={
           <View style={styles.emptyList}>
+            <Feather name="message-square" size={50} color="#6C63FF" />
             <Text style={styles.emptyListText}>Aucun message échangé</Text>
+            <Text style={styles.emptyListSubText}>Envoyez votre premier message</Text>
           </View>
         }
       />
-
-      <View style={styles.inputContainer}>
-        <TouchableOpacity onPress={pickImage} style={styles.uploadButton}>
-          <Text style={styles.uploadButtonText}>📷</Text>
-        </TouchableOpacity>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Écrivez un message..."
-          value={newMessage}
-          onChangeText={setNewMessage}
-          multiline
-        />
-
-        <TouchableOpacity 
-          style={styles.sendButton} 
-          onPress={sendMessage}
-          disabled={!newMessage.trim() && !image}
-        >
-          <Text style={styles.sendButtonText}>Envoyer</Text>
-        </TouchableOpacity>
-      </View>
 
       {image && (
         <View style={styles.imagePreview}>
@@ -470,13 +548,36 @@ function MessagerieScreen({ route, navigation }: {
             style={styles.removeImageButton}
             onPress={() => setImage(null)}
           >
-            <Text style={styles.removeImageText}>×</Text>
+            <Feather name="x" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
       )}
 
+      <View style={styles.inputContainer}>
+        <TouchableOpacity onPress={pickImage} style={styles.attachmentButton}>
+          <Feather name="paperclip" size={24} color="#6C63FF" />
+        </TouchableOpacity>
+
+        <TextInput
+          style={styles.messageInput}
+          placeholder="Écrivez un message..."
+          placeholderTextColor="#888"
+          value={newMessage}
+          onChangeText={setNewMessage}
+          multiline
+        />
+
+        <TouchableOpacity 
+          style={[styles.sendButton, (!newMessage.trim() && !image) && styles.disabledButton]} 
+          onPress={sendMessage}
+          disabled={!newMessage.trim() && !image}
+        >
+          <Feather name="send" size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         visible={modalVisible}
         onRequestClose={() => {
@@ -484,55 +585,59 @@ function MessagerieScreen({ route, navigation }: {
           setEditMode(false);
         }}
       >
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
             {editMode ? (
               <>
+                <Text style={styles.modalTitle}>Modifier le message</Text>
                 <TextInput
                   style={styles.editInput}
                   value={editedMessage}
                   onChangeText={setEditedMessage}
                   multiline
                   autoFocus
+                  placeholderTextColor="#888"
                 />
-                <View style={styles.modalButtons}>
-                  <Pressable
-                    style={[styles.modalButton, styles.saveButton]}
-                    onPress={updateMessage}
-                  >
-                    <Text style={styles.modalButtonText}>Enregistrer</Text>
-                  </Pressable>
+                <View style={styles.modalButtonContainer}>
                   <Pressable
                     style={[styles.modalButton, styles.cancelButton]}
                     onPress={() => setEditMode(false)}
                   >
                     <Text style={styles.modalButtonText}>Annuler</Text>
                   </Pressable>
+                  <Pressable
+                    style={[styles.modalButton, styles.saveButton]}
+                    onPress={updateMessage}
+                  >
+                    <Text style={styles.modalButtonText}>Enregistrer</Text>
+                  </Pressable>
                 </View>
               </>
             ) : (
               <>
-                <Text style={styles.modalText}>Que voulez-vous faire avec ce message?</Text>
-                <View style={styles.modalButtons}>
+                <Text style={styles.modalTitle}>Options du message</Text>
+                <View style={styles.modalButtonContainer}>
                   <Pressable
                     style={[styles.modalButton, styles.editButton]}
                     onPress={() => setEditMode(true)}
                   >
+                    <Feather name="edit" size={18} color="#fff" />
                     <Text style={styles.modalButtonText}>Modifier</Text>
                   </Pressable>
                   <Pressable
                     style={[styles.modalButton, styles.deleteButton]}
                     onPress={deleteMessage}
                   >
+                    <Feather name="trash-2" size={18} color="#fff" />
                     <Text style={styles.modalButtonText}>Supprimer</Text>
                   </Pressable>
-                  <Pressable
-                    style={[styles.modalButton, styles.cancelButton]}
-                    onPress={() => setModalVisible(false)}
-                  >
-                    <Text style={styles.modalButtonText}>Annuler</Text>
-                  </Pressable>
                 </View>
+                <Pressable
+                  style={[styles.modalButton, styles.cancelButton, { marginTop: 10 }]}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={[styles.modalButtonText, { color: '#333' }]}>Annuler</Text>
+                </Pressable>
               </>
             )}
           </View>
@@ -556,102 +661,197 @@ export default function MessagerieStack() {
 
 // Styles
 const styles = StyleSheet.create({
+  
   clientListContainer: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 20,
+    backgroundColor: '#1F1F1F',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  headerContainer: {
+    padding: 20,
+    paddingBottom: 10,
+    backgroundColor: '#1F1F1F',
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
+    color: 'white',
+    marginBottom: 5,
   },
-  listContainer: {
-    paddingBottom: 20,
-  },
-  clientItem: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    marginHorizontal: 20,
+    marginBottom: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    height: 45,
+    color: '#333',
+    fontSize: 16,
+  },
+  clearSearch: {
+    padding: 5,
+  },
+  listContainer: {
+    paddingBottom: 20,
+    paddingHorizontal: 15,
+  },
+  clientItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 15,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  clientAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 15,
+  },
+  clientInfo: {
+    flex: 1,
+  },
   clientName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#333',
+    marginBottom: 3,
   },
   clientUsername: {
     fontSize: 14,
-    color: '#666',
-    marginTop: 5,
+    color: '#888',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+    backgroundColor: '#f8f9fa',
   },
   emptyText: {
     textAlign: 'center',
     color: '#666',
-    marginTop: 20,
+    marginTop: 15,
+    fontSize: 16,
   },
-  container: {
+  loadingContainer: {
     flex: 1,
-    backgroundColor: '#1F1F1F',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
   },
-  header: {
+
+  // Messagerie Styles
+  messagerieContainer: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  messagerieHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 15,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    backgroundColor: '#6C63FF',
+    elevation: 5,
   },
   backButton: {
-    fontSize: 24,
     marginRight: 15,
   },
-  clientHeader: {
+  headerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 15,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  headerInfo: {
+    flex: 1,
+  },
+  headerName: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#fff',
+  },
+  headerStatus: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  headerButton: {
+    padding: 5,
   },
   messagesList: {
     padding: 15,
+    paddingBottom: 10,
+    backgroundColor: '#f8f9fa',
   },
-  messageContainer: {
-    maxWidth: '80%',
-    padding: 12,
-    borderRadius: 12,
+  sentMessageContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
     marginBottom: 10,
   },
-  sentMessage: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#007bff',
-    borderTopRightRadius: 0,
+  receivedMessageContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    marginBottom: 10,
   },
-  receivedMessage: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#e9e9eb',
-    borderTopLeftRadius: 0,
+  messageAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    marginHorizontal: 5,
+  },
+  messageBubble: {
+    maxWidth: '75%',
+    padding: 12,
+    borderRadius: 15,
+  },
+  sentMessageBubble: {
+    backgroundColor: '#6C63FF',
+    borderBottomRightRadius: 0,
+  },
+  receivedMessageBubble: {
+    backgroundColor: '#fff',
+    borderBottomLeftRadius: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   sentMessageText: {
     color: '#fff',
     fontSize: 16,
   },
   receivedMessageText: {
-    color: '#000',
+    color: '#333',
     fontSize: 16,
   },
   messageImage: {
     width: 200,
     height: 200,
-    borderRadius: 8,
+    borderRadius: 10,
     marginBottom: 8,
   },
   uploadingContainer: {
@@ -660,125 +860,155 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.1)',
-    borderRadius: 8,
+    borderRadius: 10,
     marginBottom: 8,
   },
   uploadingText: {
     marginTop: 8,
     color: '#666',
   },
-  messageFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 5,
-  },
   sentTimestamp: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.7)',
     textAlign: 'right',
+    marginTop: 3,
   },
   receivedTimestamp: {
     fontSize: 12,
-    color: 'rgba(0,0,0,0.5)',
+    color: '#888',
     textAlign: 'right',
+    marginTop: 3,
+  },
+  readIcon: {
+    marginLeft: 5,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
     backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#ddd',
+    borderTopColor: '#eee',
   },
-  input: {
+  attachmentButton: {
+    padding: 10,
+    marginRight: 5,
+  },
+  messageInput: {
     flex: 1,
     minHeight: 40,
     maxHeight: 100,
     paddingHorizontal: 15,
     paddingVertical: 10,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#f5f5f5',
     borderRadius: 20,
-    marginRight: 10,
     fontSize: 16,
-  },
-  uploadButton: {
-    padding: 10,
-  },
-  uploadButtonText: {
-    fontSize: 24,
+    color: '#333',
   },
   sendButton: {
-    backgroundColor: '#007bff',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
+    width: 40,
+    height: 40,
     borderRadius: 20,
+    backgroundColor: '#6C63FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
   },
-  sendButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+  disabledButton: {
+    backgroundColor: '#ccc',
   },
   imagePreview: {
     position: 'relative',
     padding: 10,
     backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
   },
   previewImage: {
     width: 100,
     height: 100,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   removeImageButton: {
     position: 'absolute',
-    top: 5,
-    right: 5,
-    backgroundColor: 'red',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    top: 15,
+    right: 15,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  removeImageText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+  emptyList: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+    backgroundColor: '#f8f9fa',
   },
-  centeredView: {
+  emptyListText: {
+    fontSize: 18,
+    color: '#6C63FF',
+    marginTop: 15,
+    fontWeight: '500',
+  },
+  emptyListSubText: {
+    fontSize: 14,
+    color: '#888',
+    marginTop: 5,
+  },
+
+  // Modal Styles
+  modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  modalView: {
-    margin: 20,
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 25,
-    alignItems: 'center',
+  modalContainer: {
+    width: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
-    width: '80%',
   },
-  modalText: {
-    marginBottom: 20,
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333',
     textAlign: 'center',
-    fontSize: 16,
   },
-  modalButtons: {
+  editInput: {
+    height: 100,
+    width: '100%',
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+    textAlignVertical: 'top',
+    fontSize: 16,
+    color: '#333',
+  },
+  modalButtonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    flexWrap: 'wrap',
   },
   modalButton: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: 10,
-    padding: 10,
-    elevation: 2,
-    margin: 5,
-    minWidth: 80,
+    padding: 12,
+    marginHorizontal: 5,
   },
   editButton: {
     backgroundColor: '#2196F3',
@@ -790,31 +1020,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#4CAF50',
   },
   cancelButton: {
-    backgroundColor: '#cccccc',
+    backgroundColor: '#f0f0f0',
   },
   modalButtonText: {
-    color: 'white',
+    color: '#fff',
     fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  editInput: {
-    height: 100,
-    width: '100%',
-    borderColor: '#cccccc',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 15,
-    textAlignVertical: 'top',
-  },
-  emptyList: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyListText: {
-    fontSize: 16,
-    color: '#666',
+    marginLeft: 8,
   },
 });
